@@ -1,0 +1,94 @@
+{
+    "result": [
+        {
+            "schema": {
+                "assembly_guid": {
+                    "type": "keyword"
+                },
+                "cds_count": {
+                    "type": "integer"
+                },
+                "contig_count": {
+                    "type": "integer"
+                },
+                "domain": {
+                    "type": "keyword"
+                },
+                "feature_types": {
+                    "type": "nested"
+                },
+                "feature_count": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "keyword"
+                },
+                "mrna_count": {
+                    "type": "integer"
+                },
+                "scientific_name": {
+                    "type": "text"
+                },
+                "scientific_name_keyword": {
+                    "type": "keyword"
+                },
+                "source": {
+                    "type": "keyword"
+                },
+                "source_id": {
+                    "type": "keyword"
+                },
+                "taxonomy": {
+                    "type": "text"
+                }
+            },
+            "data": {
+                "assembly_guid": [],
+                "cds_count": [],
+                "contig_count": [
+                    7
+                ],
+                "domain": [
+                    "Bacteria"
+                ],
+                "feature_types": {
+                  "CDS": 3072,
+                  "gene": 3159,
+                  "misc_RNA": 2,
+                  "misc_binding": 2,
+                  "ncRNA": 1,
+                  "non-protein_encoding_gene": 87,
+                  "protein_encoding_gene": 3072,
+                  "rRNA": 16,
+                  "repeat_region": 51,
+                  "tRNA": 68
+                },
+                "feature_count": [
+                    4347
+                ],
+                "id": [
+                    "Rhodobacter_sphaeroides_2.4.1"
+                ],
+                "mrna_count": [],
+                "objdata": {
+                  "taxonomy": "Bacteria; Proteobacteria; Alphaproteobacteria; Rhodobacterales; Rhodobacteraceae; Rhodobacter; Rhodobacter sphaeroides 2.4.1"
+                },
+                "scientific_name": [
+                    "Rhodobacter sphaeroides 2.4.1"
+                ],
+                "scientific_name_keyword": [
+                    "Rhodobacter sphaeroides 2.4.1"
+                ],
+                "source": [
+                    "NCBI"
+                ],
+                "source_id": [
+                    "NCBI"
+                ],
+                "taxonomy": [
+                    "Bacteria; Proteobacteria; Alphaproteobacteria; Rhodobacterales; Rhodobacteraceae; Rhodobacter; Rhodobacter sphaeroides 2.4.1"
+                ]
+            }
+        }
+    ]
+}
