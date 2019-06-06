@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 from configparser import ConfigParser
 
-from runner.MethodRunner import MethodRunner
+from JobRunner.MethodRunner import MethodRunner
 
 
 class MethodRunnerTest(unittest.TestCase):

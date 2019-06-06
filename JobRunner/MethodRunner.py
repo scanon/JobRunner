@@ -12,7 +12,7 @@ from time import time, sleep
 # TODO: Get secure params (e.g. username and password)
 # Write out config file with all kbase endpoints / secure params
 
-class ServerError(Exception):
+class JobError(Exception):
 
     def __init__(self, name, code, message, data=None, error=None):
         super(Exception, self).__init__(message)
@@ -29,17 +29,14 @@ class ServerError(Exception):
 
 class MethodRunner:
 
-    def __init__(self, config, job_id, token=None, admintoken=None):
+    def __init__(self, config, job_id):
+        self.token = config['token']
         self.catalog_url = config.get('catalog-service-url')
-        self.catalog = Catalog(self.catalog_url, token=token)
+        self.catalog = Catalog(self.catalog_url, token=self.token)
         self.docker = docker.from_env()
         self.config = config
-        self.token = token
-        self.admintoken = admintoken
-        self.dirs = []
         self.log = logging.getLogger('runner')
         self.refbase = '/tmp/ref'
-        self.catadmin = None
         self.workdir = config.get('workdir', '/mnt/awe/condor')
         self.job_id = job_id
         self.basedir = os.path.join(self.workdir, 'job_%s' % (self.job_id))
@@ -51,11 +48,11 @@ class MethodRunner:
         self.subjobdir = os.path.join(self.basedir, 'subjobs')
         if not os.path.exists(self.subjobdir):
             os.mkdir(self.subjobdir)
-        if admintoken is not None:
-            self.catadmin = Catalog(self.catalog_url, token=admintoken)
+        self.catadmin = Catalog(self.catalog_url, token=config['admin_token'])
 
 
-    def _create_config_properties(self, config, job_dir):
+    def _init_workdir(self, config, job_dir, params):
+        # Create config.properties and inputs
         conf_prop = ConfigParser()
 
         conf_prop['global'] = {
@@ -70,6 +67,23 @@ class MethodRunner:
 
         with open(job_dir + '/config.properties', 'w') as configfile:
             conf_prop.write(configfile)
+
+        # Create input.json
+        input = {
+            "version": "1.1",
+            "method": params['method'],
+            "params": params['params'],
+            "context": dict()
+            }
+        ijson = job_dir + '/input.json'
+        with open(ijson, 'w') as f:
+            f.write(json.dumps(input))
+
+        # Create token file
+        with open(job_dir + '/token', 'w') as f:
+            f.write(self.token)
+
+
         return True
 
     def _sort_logs(self, sout, serr):
@@ -101,10 +115,11 @@ class MethodRunner:
             return self.job_dir
 
 
-    def run(self, config, params, job_id, callback=None, subjob=False, logger=None):
+    # TODO: Thin this down a bit and move some of this to init
+    def run(self, config, params, job_id, callback=None, subjob=False, logger=None, return_output=False):
         """
-        Look up and run the module/method with the specified
-        parameters.
+        Run the method.  This is used for subjobs too.
+        This is a blocking call.  It will not return until the job/process exits.
         """
         # Mkdir workdir/tmp
         job_dir = self._get_job_dir(job_id, subjob=subjob)
@@ -131,32 +146,17 @@ class MethodRunner:
             self.log.info("Pulling %s" % (image))
             id = self.docker.images.pull(image).id
 
-        # Prepare the run space
-        # job_id = str(uuid.uuid1())
         self.log.info("image id=%s job_id=%s" % (id, job_id))
 
-        # Create config.properties
-        conf_prop = self._create_config_properties(config, job_dir)
-
-        # Create input.json
-        input = {
-            "version": "1.1",
-            "method": params['method'],
-            "params": params['params'],
-            "context": dict()
-            }
-        ijson = job_dir + '/input.json'
-        with open(ijson, 'w') as f:
-            f.write(json.dumps(input))
-
-        with open(job_dir + '/token', 'w') as f:
-            f.write(self.token)
+        # Initialize workdir
+        self._init_workdir(config, job_dir, params)
 
         # Run the container
         vols = {
             job_dir: {'bind': '/kb/module/work', 'mode': 'rw'}
         }
         # Check to see if that image exists, and if refdata exists
+        # paths to tmp dirs, refdata, volume mounts/binds
         if 'data_version' in module_info:
             ref_data = os.path.join(self.refbase, module_info['data_folder'], module_info['data_version'])
             vols[ref_data] = {'bind': '/data', 'mode': 'ro'}
@@ -165,6 +165,7 @@ class MethodRunner:
         env = {
             'SDK_CALLBACK_URL': callback
         }
+        # TODO: Add secure params
         # Set up labels used for job administration purposes
         labels = {
             "app_id": "%s/%s" % (module, method),
@@ -185,6 +186,7 @@ class MethodRunner:
                                    labels=labels,
                                    volumes=vols)
         # Start a thread to monitor output and handle finished containers
+        # 
         last = 1
         while c.status in ['created', 'running']:
             c.reload()
@@ -197,23 +199,11 @@ class MethodRunner:
                 logger.log(lines)
             last=now
             sleep(1)
-        output = None
-        out_file = job_dir + '/output.json'
-        if os.path.exists(out_file):
-            with open(out_file) as f:
-                data = f.read()
-            output = json.loads(data)
-        else:
-            print("No output")
-            raise OSError('No output json')
-
-        if 'error' in output:
-            print("Error in job")
-            raise ServerError(**output['error'])
-
         c.remove()
+        if return_output:
+            output = self.get_output(job_id, subjob=subjob)
+            return output
 
-        return output['result']
 
     def is_finished(self, job_id, subjob=True):
         of = os.path.join(self._get_job_dir(job_id, subjob=subjob), 'output.json')
@@ -221,11 +211,21 @@ class MethodRunner:
             return True
 
     def get_output(self, job_id, subjob=True):
-            out = ''
-            of = os.path.join(self._get_job_dir(job_id, subjob=subjob), 'output.json')
-            with open(of) as f:
-                out += f.read()
-            return json.loads(out)
+        # Attempt to read output file and see if it is well formed
+        # Throw errors if not
+        of = os.path.join(self._get_job_dir(job_id, subjob=subjob), 'output.json')
+        if os.path.exists(of):
+            with open(of) as json_file:
+                output = json.load(json_file)
+        else:
+            print("No output")
+            raise OSError('No output json')
+
+        if 'error' in output:
+            print("Error in job")
+            raise JobError(**output['error'])
+
+        return output
 
     def cleanup(self, config, job_id=''):
         return
