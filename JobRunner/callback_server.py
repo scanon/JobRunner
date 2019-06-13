@@ -1,31 +1,37 @@
 from sanic import Sanic
 from sanic.response import json
+from sanic.exceptions import abort
 import uuid
-from threading import Thread
-from multiprocessing import Queue
 from queue import Empty
-from .provenance import Provenance
+import asyncio
 
 app = Sanic()
 outputs = dict()
+prov = None
 
 def _check_finished():
-    fin_q = app.config['fin_queue']
+    global prov
+    in_q = app.config['in_q']
     try:
+        # Flush the queue
         while True:
-            [fjob_id, output] = fin_q.get(block=False)
-            outputs[fjob_id] = output
+            [mtype, fjob_id, output] = in_q.get(block=False)
+            if mtype=='output':
+                outputs[fjob_id] = output
+            elif mtype=='prov':
+                prov = output
     except Empty:
         pass
 
-def _process_rpc(data):
-    method = data['method'].split('.')[1]
+async def _process_rpc(data, token):
+    (module, method) = data['method'].split('.')
     # async submi job
     if method.startswith('_') and method.endswith('_submit'):
-        action = {'method': 'TODO'}
-        app.config['prov'].add_subaction(action)
+        if token != app.config.get('token'):
+            abort(401)
         job_id = str(uuid.uuid1())
-        app.config['queue'].put([job_id, data])
+        data['method'] = '%s.%s' % (module, method[1:-7])
+        app.config['out_q'].put(['submit',  job_id, data])
         return {'result': job_id}
     # check job
     elif method.startswith('_check_job'):
@@ -39,27 +45,41 @@ def _process_rpc(data):
         return {'result': [resp]}
     # Provenance
     elif method.startswith('get_provenance'):
-        prov = app.config['prov'].get_prov()
-        print(prov)
-        return {'result':[None]}
-    # TODO: this would be a sync job
+        _check_finished()
+        return {'result':[prov]}
     else:
-        return {'error': 'Unrecongnized post'}
+        if token != app.config.get('token'):
+            abort(401)
+        job_id = str(uuid.uuid1())
+        data['method'] = '%s.%s' % (module, method[1:-7])
+        app.config['out_q'].put(['submit',  job_id, data])
+        try:
+            while True:
+                _check_finished()
+                if job_id in outputs:
+                    resp = outputs[job_id]
+                    resp['finished'] = True
+                    print("Subjob %s finished" % (job_id))
+                    return resp
+                await asyncio.sleep(1)
+        except:
+            return {'error': 'Timeout'}
 
 
 @app.route("/", methods=['GET', 'POST'])
 async def root(request):
         data = request.json
-        if 'method' in data:
-            return json(_process_rpc(data))
+        if request.method=='POST' and 'method' in data:
+            token = request.headers.get('Authorization')
+            return  json(await _process_rpc(data, token))
         return json({})
 
 
-def start_callback_server(ip, port, run_queue, fin_queue):
+def start_callback_server(ip, port, out_queue, in_queue, token):
     conf = {
-        'queue': run_queue,
-        'fin_queue': fin_queue,
-        'prov': Provenance()
+        'token': token,
+        'out_q': out_queue,
+        'in_q': in_queue
     }
     app.config.update(conf)
     app.run(host=ip, port=port, debug=False, access_log=False)

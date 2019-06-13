@@ -1,57 +1,55 @@
-from clients.CatalogClient import Catalog
-import docker
-from configparser import ConfigParser
+from .DockerRunner import DockerRunner
 import os
 import json
-import logging
-from time import time, sleep
+from time import time as _time
+from time import sleep as _sleep
+from configparser import ConfigParser
+import sys
 
 # Get the image version from the catalog
 # Grab that image from dockerhub using that image version and tag
 # TODO: Set up a log flushing thread
 # TODO: Get secure params (e.g. username and password)
 # Write out config file with all kbase endpoints / secure params
-
-class JobError(Exception):
-
-    def __init__(self, name, code, message, data=None, error=None):
-        super(Exception, self).__init__(message)
-        self.name = name
-        self.code = code
-        self.message = '' if message is None else message
-        self.data = data or error or ''
-        # data = JSON RPC 2.0, error = 1.1
-
-    def __str__(self):
-        return self.name + ': ' + str(self.code) + '. ' + self.message + \
-            '\n' + self.data
-
+# TODO: Extract catalog stuff
 
 class MethodRunner:
+    """
+    This class marshalls request for jobs and launches the containers.
 
-    def __init__(self, config, job_id):
-        self.token = config['token']
-        self.catalog_url = config.get('catalog-service-url')
-        self.catalog = Catalog(self.catalog_url, token=self.token)
-        self.docker = docker.from_env()
+    It handles preparing the run area, monitoring the container execution,
+    and returning output via a queue.
+    """
+
+    def __init__(self, config, job_id, logger=None):
+        """
+        Inputs: config dictionary, Job ID, and optional logger
+        """
         self.config = config
-        self.log = logging.getLogger('runner')
-        self.refbase = '/tmp/ref'
-        self.workdir = config.get('workdir', '/mnt/awe/condor')
         self.job_id = job_id
+        self.logger = logger
+        self.token = config['token']
+        self.workdir = config.get('workdir', '/mnt/awe/condor')
         self.basedir = os.path.join(self.workdir, 'job_%s' % (self.job_id))
+        self.refbase = config.get('refdata_dir', '/tmp/ref')
+        self.job_dir = os.path.join(self.basedir, 'workdir')
+        runtime = config.get('runtime', 'docker')
+        self.containers = []
+        if runtime=='docker':
+            self.runner = DockerRunner(logger=logger)
+        else:
+            raise OSError("Unknown runtime")
+
+
+    def _init_workdir(self, config, job_dir, params):
+        # Create all the directories
         if not os.path.exists(self.basedir):
             os.mkdir(self.basedir)
-        self.job_dir = os.path.join(self.basedir, 'workdir')
         if not os.path.exists(self.job_dir):
             os.mkdir(self.job_dir)
         self.subjobdir = os.path.join(self.basedir, 'subjobs')
         if not os.path.exists(self.subjobdir):
             os.mkdir(self.subjobdir)
-        self.catadmin = Catalog(self.catalog_url, token=config['admin_token'])
-
-
-    def _init_workdir(self, config, job_dir, params):
         # Create config.properties and inputs
         conf_prop = ConfigParser()
 
@@ -86,28 +84,6 @@ class MethodRunner:
 
         return True
 
-    def _sort_logs(self, sout, serr):
-        lines = []
-        if len(sout) > 0:
-            for line in sout.decode("utf-8").split('\n'):
-                if len(line) > 0:
-                    lines.append({'line': line, 'is_error': 1})
-        if len(serr) > 0:
-            for line in serr.decode("utf-8").split('\n'):
-                if len(line) > 0:
-                    lines.append({'line': line, 'is_error': 0})
-        return lines
-
-    def _get_volume_mounts(self, module, method, cgroup):
-        req = {
-            'module_name': module,
-            'function_name': method,
-            'client_group': cgroup
-        }
-        if self.catadmin is None:
-            return None
-        return self.catadmin.list_volume_mounts({'module_name': module})
-
     def _get_job_dir(self, job_id, subjob=False):
         if subjob:
             return os.path.join(self.subjobdir, job_id)
@@ -116,7 +92,7 @@ class MethodRunner:
 
 
     # TODO: Thin this down a bit and move some of this to init
-    def run(self, config, params, job_id, callback=None, subjob=False, logger=None, return_output=False):
+    def run(self, config, module_info, params, job_id, fin_q=None, callback=None, subjob=False):
         """
         Run the method.  This is used for subjobs too.
         This is a blocking call.  It will not return until the job/process exits.
@@ -128,25 +104,13 @@ class MethodRunner:
         (module, method) = params['method'].split('.')
         version = params.get('service_ver')
 
-        # Look up the module info
-        req = {'module_name': module}
-        if version is not None:
-            req['version'] = version
-        module_info = self.catalog.get_module_version(req)
         image = module_info['docker_img_name']
-        list = self.docker.images.list()
+        id = self.runner.get_image(image)
 
-        # Pull the image if we don't have it
-        pulled = False
-        for im in list:
-            if image in im.tags:
-                id = im.id
-                pulled = True
-        if not pulled:
-            self.log.info("Pulling %s" % (image))
-            id = self.docker.images.pull(image).id
+        if subjob:
+            self.logger.log('Subjob method: {} JobID: {}'.format(params['method'], job_id))
+        self.logger.log('Running docker container for image: {}'.format(image))
 
-        self.log.info("image id=%s job_id=%s" % (id, job_id))
 
         # Initialize workdir
         self._init_workdir(config, job_dir, params)
@@ -160,8 +124,8 @@ class MethodRunner:
         if 'data_version' in module_info:
             ref_data = os.path.join(self.refbase, module_info['data_folder'], module_info['data_version'])
             vols[ref_data] = {'bind': '/data', 'mode': 'ro'}
-        # TODO: Use admin token to get volume mounts 
-        extra_vols = self._get_volume_mounts(module, method, None)
+        # TODO: Use admin token to get volume mounts
+        extra_vols = module_info.get('volume_mounts', None) 
         env = {
             'SDK_CALLBACK_URL': callback
         }
@@ -180,35 +144,19 @@ class MethodRunner:
             "user_name": config['user'],
             "wsid": str(params.get('wsid',''))
         }
-        c = self.docker.containers.run(image, 'async',
-                                   environment=env,
-                                   detach=True,
-                                   labels=labels,
-                                   volumes=vols)
-        # Start a thread to monitor output and handle finished containers
-        # 
-        last = 1
-        while c.status in ['created', 'running']:
-            c.reload()
-            now = int(time())
-            sout = c.logs(stdout=True, stderr=False, since=last, until=now, timestamps=True)
-            serr = c.logs(stdout=False, stderr=True, since=last, until=now, timestamps=True)
-            # TODO: Stream this to njs
-            lines = self._sort_logs(sout, serr)
-            if logger is not None:
-                logger.log(lines)
-            last=now
-            sleep(1)
-        c.remove()
-        if return_output:
-            output = self.get_output(job_id, subjob=subjob)
-            return output
 
-
-    def is_finished(self, job_id, subjob=True):
-        of = os.path.join(self._get_job_dir(job_id, subjob=subjob), 'output.json')
-        if os.path.exists(of):
-            return True
+        # If there is a fin_q then run this async
+        action = {
+            'name': module,
+            'ver': version,
+            'code_url': module_info['git_url'],
+            'commit': module_info['git_commit_hash']
+        }
+        # TODO thing about error handling here
+        c = self.runner.run(job_id, image, env, vols, labels, subjob, [fin_q])
+        self.containers.append(c)
+        #args = [job_id, image, env, vols, labels, subjob, [fin_q]]
+        return action
 
     def get_output(self, job_id, subjob=True):
         # Attempt to read output file and see if it is well formed
@@ -218,29 +166,18 @@ class MethodRunner:
             with open(of) as json_file:
                 output = json.load(json_file)
         else:
-            print("No output")
-            raise OSError('No output json')
+            self.logger.error("No output")
+            return None
 
         if 'error' in output:
-            print("Error in job")
-            raise JobError(**output['error'])
+            self.logger.error("Error in job")
 
         return output
 
-    def cleanup(self, config, job_id=''):
-        return
-        # sleep(1)
-        # for c in self.docker.containers.list(all=True, filters={'label': 'job_id=%s' % (job_id)}):
-        #     print(c.status)
-        #     c.remove()
-        # for d in self.dirs:
-        #     for f in ['token', 'config.properties', 'input.json', 'output.json']:
-        #         try:
-        #             os.remove(d+'/'+f)
-        #         except:
-        #             continue
-        #     try:
-        #         os.removedirs(d)
-        #     except:
-        #         continue
-        # self.dirs = []
+    def cleanup_all(self):
+        for c in self.containers:
+            try:
+                c.remove()
+            except:
+                continue
+        return True
