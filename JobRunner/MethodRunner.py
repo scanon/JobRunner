@@ -6,12 +6,8 @@ from time import sleep as _sleep
 from configparser import ConfigParser
 import sys
 
-# Get the image version from the catalog
-# Grab that image from dockerhub using that image version and tag
-# TODO: Set up a log flushing thread
 # TODO: Get secure params (e.g. username and password)
 # Write out config file with all kbase endpoints / secure params
-# TODO: Extract catalog stuff
 
 class MethodRunner:
     """
@@ -91,7 +87,6 @@ class MethodRunner:
             return self.job_dir
 
 
-    # TODO: Thin this down a bit and move some of this to init
     def run(self, config, module_info, params, job_id, fin_q=None, callback=None, subjob=False):
         """
         Run the method.  This is used for subjobs too.
@@ -107,6 +102,9 @@ class MethodRunner:
         image = module_info['docker_img_name']
         id = self.runner.get_image(image)
 
+        if id is None:
+            self.logger.error("No id returned for image")
+
         if subjob:
             self.logger.log('Subjob method: {} JobID: {}'.format(params['method'], job_id))
         self.logger.log('Running docker container for image: {}'.format(image))
@@ -119,13 +117,24 @@ class MethodRunner:
         vols = {
             job_dir: {'bind': '/kb/module/work', 'mode': 'rw'}
         }
+        if 'volume_mounts' in config:
+            for v in config['volume_mounts']:
+                k = v['host_dir']
+                k = k.replace('${username}', config['user'])
+                if not os.path.exists(k):
+                    self.logger.error("Volume mount (%s) doesn't exist." % (k))
+                    raise OSError("Missing volume mount")
+                vols[k] = {
+                    'bind': v['container_dir']
+                }
+                if v['read_only'] or v['read_only']==1:
+                    vols[k]['mode'] = 'ro'
         # Check to see if that image exists, and if refdata exists
         # paths to tmp dirs, refdata, volume mounts/binds
         if 'data_version' in module_info:
             ref_data = os.path.join(self.refbase, module_info['data_folder'], module_info['data_version'])
             vols[ref_data] = {'bind': '/data', 'mode': 'ro'}
-        # TODO: Use admin token to get volume mounts
-        extra_vols = module_info.get('volume_mounts', None) 
+        # TODO: Handle extra volumes
         env = {
             'SDK_CALLBACK_URL': callback
         }
@@ -152,7 +161,7 @@ class MethodRunner:
             'code_url': module_info['git_url'],
             'commit': module_info['git_commit_hash']
         }
-        # TODO thing about error handling here
+        # TODO Do we need to do more for error handling?
         c = self.runner.run(job_id, image, env, vols, labels, subjob, [fin_q])
         self.containers.append(c)
         #args = [job_id, image, env, vols, labels, subjob, [fin_q]]

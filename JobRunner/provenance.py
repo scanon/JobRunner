@@ -4,7 +4,6 @@ from datetime import datetime, timezone
 class Provenance(object):
     def __init__(self, params):
         self.subactions = []
-        # TODO fill in prov
         (module, method) = params['method'].split('.')
         self.actions = dict()
         self.prov = {

@@ -16,7 +16,8 @@ class CatalogCache(object):
             'function_name': method,
             'client_group': cgroup
         }
-        return self.catadmin.list_volume_mounts(req)
+        resp = self.catadmin.list_volume_mounts(req)
+        return resp[0]['volume_mounts']
 
     def get_module_info(self, module, version):
         # Look up the module info
@@ -24,12 +25,14 @@ class CatalogCache(object):
             req = {'module_name': module}
             if version is not None:
                 req['version'] = version
+            # Get the image version from the catalog and cache it
             module_info = self.catalog.get_module_version(req)
             self.module_cache[module] =  module_info
             git_url = module_info['git_url']
             git_commit = module_info['git_commit_hash']
             self.logger.log('Running module {}: url: {} commit: {}'.format(module, git_url, git_commit))
         else:
+            # Pull from the cache
             module_info = self.module_cache[module]
             git_url = module_info['git_url']
             git_commit = module_info['git_commit_hash']

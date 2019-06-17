@@ -12,6 +12,7 @@ from multiprocessing import process, Process, Queue
 from .provenance import Provenance
 from queue import Empty
 import socket
+import signal
 from .CatalogCache import CatalogCache
 
 class JobRunner(object):
@@ -38,9 +39,12 @@ class JobRunner(object):
         self.jr_queue = Queue()
         self.callback_queue = Queue()
         self.prov = None
+        signal.signal(signal.SIGINT, self.shutdown)
+        print("Added signal handler")
         self._init_callback_url()
         self.mr = MethodRunner(self.config, job_id, logger=self.logger)
         self.cc = CatalogCache(config, logger=self.logger)
+        print("Here")
     
     def _init_config(self, config, job_id, njs_url):
         """
@@ -95,28 +99,30 @@ class JobRunner(object):
         if not os.path.exists(cfile):
             return None
         with open(cfile) as f:
-            for lines in f:
+            for line in f:
                 if line.find('htcondor') > 0:
                     items = line.split(':')
                     if len(items) == 3:
                         return items[2]
         
-        # TODO: Log cgroup
-        return cgroup
+        return "Unknown"
 
     def _submit(self, config, job_id, data, subjob=True):
         (module, method) = data['method'].split('.')
         version = data.get('service_ver')
         module_info = self.cc.get_module_info(module, version)
         vm = self.cc.get_volume_mounts(module, method, self.client_group)
-        module_info['volume_mounts'] = vm
+        config['volume_mounts'] = vm
         action = self.mr.run(config, module_info, data, job_id, callback=self.callback_url, subjob=subjob,
                              fin_q=self.jr_queue)
         self._update_prov(action)        
 
     def _cancel(self):
-        # TODO: kill all containers and stop main thread
         self.mr.cleanup_all()
+
+    def shutdown(self, sig, bt):
+        # TODO
+        sys.exit()
 
     def _watch(self, config):
         # Run a thread to check for expired token
@@ -156,10 +162,14 @@ class JobRunner(object):
 
     def _init_callback_url(self):
         # Find a free port and Start up callback server
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("gmail.com",80))
-        self.ip = s.getsockname()[0]
-        s.close()
+        if os.environ.get('CALLBACK_IP') is not None:
+            self.ip = os.environ.get('CALLBACK_IP')
+            self.logger.log("Callback IP provided (%s)" % (self.ip))
+        else:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("gmail.com",80))
+            self.ip = s.getsockname()[0]
+            s.close()
         sock = socket.socket()
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         sock.bind(('', 0))
@@ -190,7 +200,6 @@ class JobRunner(object):
         not return until the job finishes or encounters and error.
         This method also handles starting up the callback server.
         """
-        # TODO: Log the worker node / client group
         self.logger.log('Running on {} ({}) in {}'.format(self.hostname, self.ip, self.workdir))
         self.logger.log('Client group: {}'.format(self.client_group))
 
@@ -200,8 +209,12 @@ class JobRunner(object):
             sys.exit(1)
 
         # Get job inputs from njs db
-        # TODO: Handle errors
-        job_params = self.njs.get_job_params(self.job_id)
+        try:
+            job_params = self.njs.get_job_params(self.job_id)
+        except Exception as e:
+            self.logger.error("Failed to get job parameters. Exiting.")
+            raise e
+
         params = job_params[0]
         config = job_params[1]
         config['job_id'] = self.job_id

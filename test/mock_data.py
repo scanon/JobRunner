@@ -69,3 +69,15 @@ NJS_JOB_PARAMS = [
     u'workspace.srv.url': u'https://ci.kbase.us/services/ws'
 }]
 
+CATALOG_LIST_VOLUME_MOUNTS = [
+    {
+        'module_name': 'mock_app',
+        'function_name': 'bogus',
+        'client_group': 'kb_upload',
+        'volume_mounts': [{
+            'host_dir': '/tmp/${username}',
+            'container_dir': '/staging',
+            'read_only': 1
+        }]
+    }
+]

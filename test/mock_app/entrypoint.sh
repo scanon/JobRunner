@@ -7,6 +7,11 @@ if [ $(grep -c bogus $IN) -gt 0 ] ; then
    echo "Standard out line"
    echo "Standard error line"  >& 2
    FILE=output.json
+elif [ $(grep -c voltest $IN) -gt 0 ] ; then
+   echo "Standard out line"
+   echo "Standard error line"  >& 2
+   cat /staging/input.fa
+   FILE=output.json
 else
   echo "Error"
   FILE=error.json

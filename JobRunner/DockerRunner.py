@@ -6,8 +6,6 @@ from time import time as _time
 from time import sleep as _sleep
 import sys
 
-# TODO: Set up a log flushing thread
-
 class DockerRunner:
     """
     This class provides the container interface for Docker.
@@ -24,6 +22,12 @@ class DockerRunner:
         self.threads = []
 
     def _sort_logs(self, sout, serr):
+        """
+        This is an internal function to sort and interlace output for NJS.
+        This is not fully implemented yet and sould be rethought.
+        """
+        # TODO: Fix sorting
+
         lines = []
         if len(sout) > 0:
             for line in sout.decode("utf-8").split('\n'):
@@ -42,7 +46,6 @@ class DockerRunner:
             now = int(_time())
             sout = c.logs(stdout=True, stderr=False, since=last, until=now, timestamps=True)
             serr = c.logs(stdout=False, stderr=True, since=last, until=now, timestamps=True)
-            # TODO: Stream this to njs
             lines = self._sort_logs(sout, serr)
             if self.logger is not None:
                 self.logger.log_lines(lines)
@@ -50,12 +53,11 @@ class DockerRunner:
             _sleep(1)
         c.remove()
         self.containers.remove(c)
-        # output = self.get_output(job_id, subjob=subjob)
         for q in queues:
             q.put(['finished', job_id, None])
 
     def get_image(self, image):
-        # Pull the image if we don't have it
+        # Pull the image from the hub if we don't have it
         pulled = False
         for im in self.docker.images.list():
             if image in im.tags:

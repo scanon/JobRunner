@@ -7,7 +7,7 @@ from mock import MagicMock
 from JobRunner.JobRunner import JobRunner
 from nose.plugins.attrib import attr
 from copy import deepcopy
-from mock_data import CATALOG_GET_MODULE_VERSION, NJS_JOB_PARAMS
+from mock_data import CATALOG_GET_MODULE_VERSION, NJS_JOB_PARAMS, CATALOG_LIST_VOLUME_MOUNTS
 
 
 class JobRunnerTest(unittest.TestCase):
@@ -88,6 +88,34 @@ class JobRunnerTest(unittest.TestCase):
     @attr('offline')
     @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
     @patch('JobRunner.JobRunner.NJS', autospec=True)
+    def test_run_volume(self, mock_njs, mock_auth):
+        self._cleanup(self.jobid)
+        params = deepcopy(NJS_JOB_PARAMS)
+        params[0]['method'] = 'mock_app.voltest'
+        params[0]['params'] = {'param1': 'value1'}
+        jr = JobRunner(self.config, self.njs_url, self.jobid, self.token, self.admin_token)
+        rv = deepcopy(CATALOG_GET_MODULE_VERSION)
+        rv['docker_img_name'] = 'mock_app:latest'
+        vols = deepcopy(CATALOG_LIST_VOLUME_MOUNTS)
+        jr.cc.catalog.get_module_version = MagicMock(return_value=rv)
+        jr.cc.catadmin.list_volume_mounts = MagicMock(return_value=vols)
+        jr.logger.njs.add_job_logs = MagicMock(return_value=rv)
+        jr.njs.get_job_params.return_value = params
+        jr.njs.check_job_canceled.return_value = {'finished': False}
+        jr.auth.get_user.return_value = "bogus"
+        if not os.path.exists('/tmp/bogus'):
+            os.mkdir('/tmp/bogus')
+        with open('/tmp/bogus/input.fa', 'w') as f:
+            f.write('>contig-50_0 length_64486 read_count_327041\n')
+            f.write('GTCGTGCTGCTGCCGATCGACCGCGCCTATGCGATGTTGCCGGACGGCATGTGATGGCCC\n')
+        out = jr.run()
+        self.assertIn('result', out)
+        self.assertNotIn('error', out)
+
+
+    @attr('offline')
+    @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
+    @patch('JobRunner.JobRunner.NJS', autospec=True)
     def test_cancel(self, mock_njs, mock_auth):
         self._cleanup(self.jobid)
         params = deepcopy(NJS_JOB_PARAMS)
@@ -104,6 +132,7 @@ class JobRunnerTest(unittest.TestCase):
         jr.njs.check_job_canceled.side_effect = [nf, nf, nf, nf, nf, {'finished': True}]
         jr.auth.get_user.return_value = "bogus"
         out = jr.run()
+        self.assertIsNotNone(out)
         # Check that all containers are gone
 
 
