@@ -1,0 +1,8 @@
+#!/bin/sh
+
+echo "line 1"
+sleep 5
+echo "an error" 1>&2
+sleep 5
+echo "line 3"
+exit 1
