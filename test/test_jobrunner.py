@@ -7,7 +7,7 @@ from mock import MagicMock
 from JobRunner.JobRunner import JobRunner
 from nose.plugins.attrib import attr
 from copy import deepcopy
-from mock_data import CATALOG_GET_MODULE_VERSION, NJS_JOB_PARAMS, CATALOG_LIST_VOLUME_MOUNTS
+from .mock_data import CATALOG_GET_MODULE_VERSION, NJS_JOB_PARAMS, CATALOG_LIST_VOLUME_MOUNTS
 
 
 class JobRunnerTest(unittest.TestCase):
@@ -18,6 +18,8 @@ class JobRunnerTest(unittest.TestCase):
         cls.admin_token = os.environ.get('KB_ADMIN_AUTH_TOKEN', None)
         cls.cfg = {}
         base = 'https://ci.kbase.us/services/'
+        if 'TEST_URL' in os.environ:
+            base = "http://%s/services/" % (os.environ['TEST_URL'])
         cls.njs_url = base + 'njs_wrapper'
         cls.jobid = '1234'
         cls.workdir = '/tmp/jr/'
@@ -25,6 +27,7 @@ class JobRunnerTest(unittest.TestCase):
         cls.config = {
             'catalog-service-url': base + 'catalog',
             'auth-service-url': base + 'auth/api/legacy/KBase/Sessions/Login',
+            'auth2-url': base + 'auth/api/V2/token',
             'workdir': '/tmp/jr'
             }
         if not os.path.exists('/tmp/jr'):
@@ -49,6 +52,8 @@ class JobRunnerTest(unittest.TestCase):
         params = deepcopy(NJS_JOB_PARAMS)
         params[0]['method'] = 'RunTester.run_RunTester'
         params[0]['params'] = [{'depth': 3, 'size': 1000, 'parallel': 5}]
+        params[1]['auth-service-url'] = self.config['auth-service-url']
+        params[1]['auth.service.url.v2'] = self.config['auth2-url']
         jr = JobRunner(self.config, self.njs_url, self.jobid, self.token, self.admin_token)
         rv = deepcopy(CATALOG_GET_MODULE_VERSION)
         rv['docker_img_name'] = 'test/runtester:latest'
@@ -61,6 +66,7 @@ class JobRunnerTest(unittest.TestCase):
         out = jr.run()
         self.assertIn('result', out)
         self.assertNotIn('error', out)
+
 
     @attr('offline')
     @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
@@ -151,4 +157,18 @@ class JobRunnerTest(unittest.TestCase):
         out = jr.run()
         self.assertIn('result', out)
         self.assertNotIn('error', out)
+
+
+    @patch('JobRunner.JobRunner.NJS', autospec=True)
+    @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
+    def test_token(self, mock_njs, mock_auth):
+        self._cleanup(self.jobid)
+        params = deepcopy(NJS_JOB_PARAMS)
+        os.environ['KB_AUTH_TOKEN'] = 'bogus'
+        jr = JobRunner(self.config, self.njs_url, self.jobid, self.token, self.admin_token)
+        jr.njs.check_job_canceled.return_value = {'finished': False}
+        jr.njs.get_job_params.return_value = params
+        jr.auth.get_user.side_effect = OSError()
+        with self.assertRaises(Exception):
+            jr.run()
 
