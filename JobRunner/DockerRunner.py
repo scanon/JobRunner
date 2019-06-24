@@ -41,20 +41,23 @@ class DockerRunner:
 
     def _shepherd(self, c, job_id, subjob, queues):
         last = 1
-        while c.status in ['created', 'running']:
-            c.reload()
-            now = int(_time())
-            sout = c.logs(stdout=True, stderr=False, since=last, until=now, timestamps=True)
-            serr = c.logs(stdout=False, stderr=True, since=last, until=now, timestamps=True)
-            lines = self._sort_logs(sout, serr)
-            if self.logger is not None:
-                self.logger.log_lines(lines)
-            last=now
-            _sleep(1)
-        c.remove()
-        self.containers.remove(c)
-        for q in queues:
-            q.put(['finished', job_id, None])
+        try:
+            while c.status in ['created', 'running']:
+                c.reload()
+                now = int(_time())
+                sout = c.logs(stdout=True, stderr=False, since=last, until=now, timestamps=True)
+                serr = c.logs(stdout=False, stderr=True, since=last, until=now, timestamps=True)
+                lines = self._sort_logs(sout, serr)
+                if self.logger is not None:
+                    self.logger.log_lines(lines)
+                last=now
+                _sleep(1)
+            c.remove()
+            self.containers.remove(c)
+            for q in queues:
+                q.put(['finished', job_id, None])
+        except:
+            self.logger.error("Unexpected failure")
 
     def get_image(self, image):
         # Pull the image from the hub if we don't have it
@@ -71,7 +74,7 @@ class DockerRunner:
         return id
 
 
-    def run(self, job_id, image,env, vols, labels, subjob, queues):
+    def run(self, job_id, image, env, vols, labels, subjob, queues):
         c = self.docker.containers.run(image, 'async',
                                    environment=env,
                                    detach=True,
@@ -97,16 +100,16 @@ class DockerRunner:
         except:
             pass
 
-    def cleanup_all(self):
-        for c in self.containers:
-            try:
-                c.kill()
-            except:
-                continue
-        _sleep(1)
-        for c in self.containers:
-            try:
-                c.remove
-            except:
-                continue
-        return True
+    # def cleanup_all(self):
+    #     for c in self.containers:
+    #         try:
+    #             c.kill()
+    #         except:
+    #             continue
+    #     _sleep(1)
+    #     for c in self.containers:
+    #         try:
+    #             c.remove
+    #         except:
+    #             continue
+    #     return True

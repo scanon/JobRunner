@@ -186,7 +186,7 @@ class MethodRunner:
     def cleanup_all(self):
         for c in self.containers:
             try:
-                c.remove()
-            except:
+                self.runner.remove(c)
+            except OSError:
                 continue
         return True
