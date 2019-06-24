@@ -29,7 +29,7 @@ class JobRunner(object):
         self.njs = NJS(url=njs_url)
         self.logger = Logger(njs_url, job_id, njs=self.njs)
         self.token = token
-        self.client_group = "TODO"
+        self.client_group = os.environ.get("AWE_CLIENTGROUP", "None")
         self.admin_token = admin_token
         self.config = self._init_config(config, job_id, njs_url)
         self.hostname = gethostname()
@@ -39,12 +39,11 @@ class JobRunner(object):
         self.jr_queue = Queue()
         self.callback_queue = Queue()
         self.prov = None
-        signal.signal(signal.SIGINT, self.shutdown)
-        print("Added signal handler")
         self._init_callback_url()
         self.mr = MethodRunner(self.config, job_id, logger=self.logger)
-        self.cc = CatalogCache(config, logger=self.logger)
-        print("Here")
+        self.cc = CatalogCache(config)
+        signal.signal(signal.SIGINT, self.shutdown)
+        print("Added signal handler")
     
     def _init_config(self, config, job_id, njs_url):
         """
@@ -58,21 +57,6 @@ class JobRunner(object):
         config['token'] = token
         config['admin_token'] = self.admin_token
         return config
-
-    def _get_token(self):
-    # Get the token from the environment or a file.
-    # Set the KB_AUTH_TOKEN if not set.
-        if 'KB_AUTH_TOKEN' in os.environ:
-            token = os.environ['KB_AUTH_TOKEN']
-        else:
-            try:
-                with open('token') as f:
-                    token = f.read().rstrip()
-                os.environ['KB_AUTH_TOKEN'] = token
-            except:
-                self.logger.error("Failed to get token.")
-                sys.exit(2)
-        return token
 
     def _check_job_status(self):
         """
@@ -111,6 +95,16 @@ class JobRunner(object):
         (module, method) = data['method'].split('.')
         version = data.get('service_ver')
         module_info = self.cc.get_module_info(module, version)
+
+        git_url = module_info['git_url']
+        git_commit = module_info['git_commit_hash']
+        if module_info['cached']:
+            self.logger.log('Running module {}: url: {} commit: {}'.format(module, git_url, git_commit))
+        else:
+            version = module_info['version']
+            f = 'WARNING: Module {} was already used once for this job. Using cached version: url: {} commit: {} version: {} release: release'
+            self.logger.error(f.format(module, git_url, git_commit, version))
+
         vm = self.cc.get_volume_mounts(module, method, self.client_group)
         config['volume_mounts'] = vm
         action = self.mr.run(config, module_info, data, job_id, callback=self.callback_url, subjob=subjob,
@@ -122,7 +116,10 @@ class JobRunner(object):
 
     def shutdown(self, sig, bt):
         # TODO
-        sys.exit()
+        print("Recieved an interupt")
+        # Send a cancel to the queue
+        self.jr_queue.put(['cancel', None, None])
+        #sys.exit()
 
     def _watch(self, config):
         # Run a thread to check for expired token
@@ -133,7 +130,6 @@ class JobRunner(object):
             try:
                 req=self.jr_queue.get(timeout=1)
                 if req[0]=='submit':
-                    print("submit " + req[1])
                     self._submit(config, req[1], req[2])
                     ct += 1
                 elif req[0]=='finished':
@@ -148,6 +144,9 @@ class JobRunner(object):
                         if ct > 0:
                             self.logger.error("Orphaned containers may be present")
                         return output
+                elif req[0]=='cancel':
+                    self._cancel()
+                    return {}
             except Empty:
                 pass
             if ct == 0:
@@ -157,7 +156,7 @@ class JobRunner(object):
             if not self._check_job_status():
                 self.logger.error("Job canceled or unexpected error")
                 self._cancel()
-                return
+                return {'error': 'Canceled or unexpected error'}
 
 
     def _init_callback_url(self):

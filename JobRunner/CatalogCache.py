@@ -1,12 +1,11 @@
 from clients.CatalogClient import Catalog
 
 class CatalogCache(object):
-    def __init__(self, config, logger=None):
+    def __init__(self, config):
         self.catalog_url = config.get('catalog-service-url')
         self.catalog = Catalog(self.catalog_url, token=config['token'])
         self.catadmin = Catalog(self.catalog_url, token=config['admin_token'])
         self.module_cache = dict()
-        self.logger = logger
 
     def get_volume_mounts(self, module, method, cgroup):
         if self.catadmin is None:
@@ -17,7 +16,10 @@ class CatalogCache(object):
             'client_group': cgroup
         }
         resp = self.catadmin.list_volume_mounts(req)
-        return resp[0]['volume_mounts']
+        if len(resp) > 0:
+            return resp[0]['volume_mounts']
+        else:
+            return []
 
     def get_module_info(self, module, version):
         # Look up the module info
@@ -27,16 +29,11 @@ class CatalogCache(object):
                 req['version'] = version
             # Get the image version from the catalog and cache it
             module_info = self.catalog.get_module_version(req)
+            module_info['cached'] = False
             self.module_cache[module] =  module_info
-            git_url = module_info['git_url']
-            git_commit = module_info['git_commit_hash']
-            self.logger.log('Running module {}: url: {} commit: {}'.format(module, git_url, git_commit))
         else:
-            # Pull from the cache
+            # Use the cache
             module_info = self.module_cache[module]
-            git_url = module_info['git_url']
-            git_commit = module_info['git_commit_hash']
-            version = module_info['version']
-            f = 'WARNING: Module {} was already used once for this job. Using cached version: url: {} commit: {} version: {} release: release'
-            self.logger.error(f.format(module, git_url, git_commit, version))
-        return self.module_cache[module]
+            module_info['cached'] = True
+            
+        return module_info
