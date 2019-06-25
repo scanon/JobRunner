@@ -21,6 +21,7 @@ install:
   - export PATH=$(pwd)/bin:$PATH
   - pip install -r requirements.txt
   - pip install -r requirements-dev.txt
+  - make runtester
   - make mock
 
 script:
