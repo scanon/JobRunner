@@ -1,4 +1,5 @@
 language: python
+dist: xenial
 python:
   - "3.7"
 
@@ -6,7 +7,6 @@ sudo: required
 
 services:
   - docker
-  - elasticsearch
 
 branches:
   only:
