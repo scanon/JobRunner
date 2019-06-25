@@ -35,6 +35,8 @@ async def _process_rpc(data, token):
         return {'result': job_id}
     # check job
     elif method.startswith('_check_job'):
+        if 'params' not in data:
+            abort(404)
         job_id = data['params'][0]
         _check_finished()
         resp = {'finished': False}
@@ -69,7 +71,7 @@ async def _process_rpc(data, token):
 @app.route("/", methods=['GET', 'POST'])
 async def root(request):
         data = request.json
-        if request.method=='POST' and 'method' in data:
+        if request.method=='POST' and data is not None and 'method' in data:
             token = request.headers.get('Authorization')
             return  json(await _process_rpc(data, token))
         return json({})

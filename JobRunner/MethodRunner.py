@@ -26,9 +26,9 @@ class MethodRunner:
         self.logger = logger
         self.token = config['token']
         self.workdir = config.get('workdir', '/mnt/awe/condor')
-        self.basedir = os.path.join(self.workdir, 'job_%s' % (self.job_id))
+        # self.basedir = os.path.join(self.workdir, 'job_%s' % (self.job_id))
         self.refbase = config.get('refdata_dir', '/tmp/ref')
-        self.job_dir = os.path.join(self.basedir, 'workdir')
+        self.job_dir = os.path.join(self.workdir, 'workdir')
         runtime = config.get('runtime', 'docker')
         self.containers = []
         if runtime=='docker':
@@ -39,11 +39,11 @@ class MethodRunner:
 
     def _init_workdir(self, config, job_dir, params):
         # Create all the directories
-        if not os.path.exists(self.basedir):
-            os.mkdir(self.basedir)
+        # if not os.path.exists(self.basedir):
+        #     os.mkdir(self.basedir)
         if not os.path.exists(self.job_dir):
             os.mkdir(self.job_dir)
-        self.subjobdir = os.path.join(self.basedir, 'subjobs')
+        self.subjobdir = os.path.join(self.workdir, 'subjobs')
         if not os.path.exists(self.subjobdir):
             os.mkdir(self.subjobdir)
         # Create config.properties and inputs

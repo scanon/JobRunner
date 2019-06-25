@@ -98,7 +98,7 @@ class JobRunner(object):
 
         git_url = module_info['git_url']
         git_commit = module_info['git_commit_hash']
-        if module_info['cached']:
+        if not module_info['cached']:
             self.logger.log('Running module {}: url: {} commit: {}'.format(module, git_url, git_commit))
         else:
             version = module_info['version']
@@ -223,7 +223,7 @@ class JobRunner(object):
 
 
         # Update job as started and log it
-        self.njs.update_job({'job_id': self.job_id, 'is_started': True})
+        self.njs.update_job({'job_id': self.job_id, 'is_started': 1})
 
         self._init_workdir()
         config['workdir'] = self.workdir
@@ -243,6 +243,7 @@ class JobRunner(object):
         # TODO: Check to see if job completes and returns too much data
         cbs.kill()
         self.logger.log('Job is done')
+        self.njs.finish_job(self.job_id, output)
         # TODO: Attempt to clean up any running docker containers (if something crashed, for example)
         return output
         

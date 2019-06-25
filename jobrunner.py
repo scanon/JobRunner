@@ -41,10 +41,16 @@ def main():
         print("Incorrect usage")
         sys.exit(1)
     config = {}
-    config['workdir'] = os.environ.get("WORKDIR", '/tmp/')
+    config['workdir'] = os.environ.get("JOB_DIR", '/tmp/')
+    if not os.path.exists(config['workdir']):
+        os.makedirs(config['workdir'])
     config['catalog-service-url'] = njs_url.replace('njs_wrapper', 'catalog')
+    config['auth-service-url'] = njs_url.replace('njs_wrapper', 'auth/api/legacy/KBase/Sessions/Login')
+
     token = _get_token()
     at = _get_admin_token()
+    if not os.path.exists(config['workdir']):
+        os.makedirs(config['workdir'])
     
     try:
         jr = JobRunner(config, njs_url, job_id, token, at)
