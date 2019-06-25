@@ -29,7 +29,7 @@ class MethodRunnerTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        cls.token = os.environ.get('KB_AUTH_TOKEN', None)
+        cls.token = os.environ.get('KB_AUTH_TOKEN', '')
         # WARNING: don't call any logging metholsds on the context object,
         # it'll result in a NoneType error
         cls.cfg = {

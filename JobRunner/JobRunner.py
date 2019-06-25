@@ -44,7 +44,6 @@ class JobRunner(object):
         self.mr = MethodRunner(self.config, job_id, logger=self.logger)
         self.cc = CatalogCache(config)
         signal.signal(signal.SIGINT, self.shutdown)
-        print("Added signal handler")
 
     def _init_config(self, config, job_id, njs_url):
         """

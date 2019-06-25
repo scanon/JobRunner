@@ -44,7 +44,6 @@ async def _process_rpc(data, token):
         if job_id in outputs:
             resp = outputs[job_id]
             resp['finished'] = True
-            print("Subjob %s finished" % (job_id))
         return {'result': [resp]}
     # Provenance
     elif method.startswith('get_provenance'):
@@ -62,7 +61,6 @@ async def _process_rpc(data, token):
                 if job_id in outputs:
                     resp = outputs[job_id]
                     resp['finished'] = True
-                    print("Subjob %s finished" % (job_id))
                     return resp
                 await asyncio.sleep(1)
         except:

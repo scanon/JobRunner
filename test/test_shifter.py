@@ -48,5 +48,6 @@ class CatalogCacheTest(unittest.TestCase):
         self.sr.run('mock_app:latest', 'mock_app:latest', env, vols, labels,
                     False, [q])
         result = q.get()
-        print(self.logger.all)
-        print(result)
+        self.assertEquals(result[0], 'finished')
+        self.assertEquals(len(result), 3)
+        self.assertIn('line', self.logger.all[0])

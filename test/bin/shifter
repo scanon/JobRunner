@@ -1,8 +1,8 @@
 #!/bin/sh
 
 echo "line 1"
-sleep 5
+sleep 1
 echo "an error" 1>&2
-sleep 5
+sleep 1
 echo "line 3"
 exit 1

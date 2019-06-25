@@ -1,0 +1,29 @@
+language: python
+python:
+  - "3.6"
+
+sudo: required
+
+services:
+  - docker
+  - elasticsearch
+
+branches:
+  only:
+    - master
+
+env:
+
+before_install:
+  - docker version
+
+install:
+  - export PATH=$(pwd)/bin:$PATH
+  - pip install -r requirements.txt
+  - pip install -r requirements-dev.txt
+  - (cd test/mock_indexer && docker build -t mock_indexer .)
+
+script:
+  - make test
+
+after_script:
