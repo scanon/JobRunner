@@ -21,10 +21,13 @@ install:
   - export PATH=$(pwd)/bin:$PATH
   - pip install -r requirements.txt
   - pip install -r requirements-dev.txt
+  - pip install codecov
   - make runtester
   - make mock
 
 script:
   - make test
 
-after_script:
+after_success:
+  - codecov
+
