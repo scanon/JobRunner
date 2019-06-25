@@ -3,6 +3,7 @@
 import sys
 from clients.NarrativeJobServiceClient import NarrativeJobService
 
+
 class Logger(object):
 
     def __init__(self, njs_url, job_id, njs=None):

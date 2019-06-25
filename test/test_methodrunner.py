@@ -9,11 +9,12 @@ from JobRunner.MethodRunner import MethodRunner
 from JobRunner.logger import Logger
 from .mock_data import NJS_JOB_PARAMS, CATALOG_GET_MODULE_VERSION
 
+
 class MockLogger(object):
     def __init__(self):
         self.lines = []
         self.errors = []
-    
+
     def log_lines(self, lines):
         self.lines.append(lines)
 
@@ -60,12 +61,56 @@ class MethodRunnerTest(unittest.TestCase):
         except:
             pass
         q = Queue()
-        action = mr.run(self.conf, module_info, NJS_JOB_PARAMS[0], '1234', fin_q=q)
+        action = mr.run(self.conf, module_info, NJS_JOB_PARAMS[0], '1234',
+                        fin_q=q)
         self.assertIn('name', action)
         out = q.get(timeout=10)
         self.assertEqual(out[0], 'finished')
         self.assertEqual('1234', out[1])
 
+    def test_no_output(self):
+        mr = MethodRunner(self.cfg, '1234', logger=MockLogger())
+        module_info = deepcopy(CATALOG_GET_MODULE_VERSION)
+        module_info['docker_img_name'] = 'mock_app:latest'
+        try:
+            os.makedirs('/tmp/mr/')
+        except:
+            pass
+        if os.path.exists('/tmp/mr/workdir/output.json'):
+            os.remove('/tmp/mr/workdir/output.json')
+        q = Queue()
+        params = deepcopy(NJS_JOB_PARAMS[0])
+        params['method'] = 'echo_test.noout'
+        action = mr.run(self.conf, module_info, params, '1234', fin_q=q)
+        self.assertIn('name', action)
+        out = q.get(timeout=10)
+        self.assertEqual(out[0], 'finished')
+        self.assertEqual('1234', out[1])
+        result = mr.get_output('1234', subjob=False)
+        self.assertIn('error', result)
+        self.assertEquals(result['error']['name'], 'Output not found')
+
+    def test_bad_method(self):
+        mr = MethodRunner(self.cfg, '1234', logger=MockLogger())
+        module_info = deepcopy(CATALOG_GET_MODULE_VERSION)
+        module_info['docker_img_name'] = 'mock_app:latest'
+        try:
+            os.makedirs('/tmp/mr/')
+        except:
+            pass
+        if os.path.exists('/tmp/mr/workdir/output.json'):
+            os.remove('/tmp/mr/workdir/output.json')
+        q = Queue()
+        params = deepcopy(NJS_JOB_PARAMS[0])
+        params['method'] = 'echo_test.badmethod'
+        action = mr.run(self.conf, module_info, params, '1234', fin_q=q)
+        self.assertIn('name', action)
+        out = q.get(timeout=10)
+        self.assertEqual(out[0], 'finished')
+        self.assertEqual('1234', out[1])
+        result = mr.get_output('1234', subjob=False)
+        self.assertIn('error', result)
+        self.assertEquals(result['error']['name'], 'Method not found')
 
     def test_bad_runtime(self):
         cfg = deepcopy(self.cfg)

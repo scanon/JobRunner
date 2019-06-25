@@ -7,7 +7,8 @@ from mock import MagicMock
 from JobRunner.CatalogCache import CatalogCache
 from nose.plugins.attrib import attr
 from copy import deepcopy
-from .mock_data import CATALOG_GET_MODULE_VERSION, NJS_JOB_PARAMS, CATALOG_LIST_VOLUME_MOUNTS
+from .mock_data import CATALOG_GET_MODULE_VERSION, NJS_JOB_PARAMS,\
+    CATALOG_LIST_VOLUME_MOUNTS
 
 
 class CatalogCacheTest(unittest.TestCase):
@@ -27,7 +28,8 @@ class CatalogCacheTest(unittest.TestCase):
     @patch('JobRunner.CatalogCache.Catalog', autospec=True)
     def test_cache(self, mock_cc):
         cc = CatalogCache(self.cfg)
-        cc.catadmin.get_module_version.return_value = CATALOG_GET_MODULE_VERSION
+        cc.catadmin.get_module_version.return_value = \
+            CATALOG_GET_MODULE_VERSION
         out = cc.get_module_info('bogus', 'method')
         self.assertIn('git_commit_hash', out)
         self.assertIn('cached', out)
@@ -36,7 +38,6 @@ class CatalogCacheTest(unittest.TestCase):
         self.assertIn('git_commit_hash', out)
         self.assertIn('cached', out)
         self.assertTrue(out['cached'])
-
 
     @patch('JobRunner.CatalogCache.Catalog', autospec=True)
     def test_volume(self, mock_cc):

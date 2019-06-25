@@ -12,6 +12,8 @@ elif [ $(grep -c voltest $IN) -gt 0 ] ; then
    echo "Standard error line"  >& 2
    cat /staging/input.fa
    FILE=output.json
+elif [ $(grep -c noout $IN) -gt 0 ] ; then
+   exit 1
 else
   echo "Error"
   FILE=error.json

@@ -5,25 +5,29 @@ from queue import Queue
 from unittest.mock import patch
 _TOKEN = 'bogus'
 
+
 def _post(data):
     header = {"Authorization": _TOKEN}
 
     sa = {'access_log': False}
     return app.test_client.post('/',
-                                 server_kwargs=sa,
-                                 headers=header, data=data)[1]
+                                server_kwargs=sa,
+                                headers=header, data=data)[1]
+
 
 def test_index_returns_200():
-    request, response = app.test_client.get('/')
+    response = app.test_client.get('/')[1]
     assert response.status == 200
+
 
 def test_index_post_empty():
     response = _post(None)
-    print (response.json)
+    print(response.json)
     assert response.json == {}
 
+
 def test_index_post():
-    out_q= Queue()
+    out_q = Queue()
     in_q = Queue()
     conf = {
             'token': _TOKEN,
@@ -37,20 +41,20 @@ def test_index_post():
     job_id = response.json['result']
     mess = out_q.get()
     assert 'submit' in mess
-    data = json.dumps({'method': 'bogus._check_job', 'params': [ job_id]})
+    data = json.dumps({'method': 'bogus._check_job', 'params': [job_id]})
     response = _post(data)
     assert 'result' in response.json
     assert response.json['result'][0]['finished'] is False
-    data = json.dumps({'method': 'bogus.get_provenance', 'params': [ job_id]})
+    data = json.dumps({'method': 'bogus.get_provenance', 'params': [job_id]})
     response = _post(data)
     assert 'result' in response.json
     assert response.json['result'][0] is None
     in_q.put(['prov', job_id, 'bogus'])
     response = _post(data)
     assert 'result' in response.json
-    assert response.json['result'][0]=='bogus'
+    assert response.json['result'][0] == 'bogus'
     in_q.put(['output', job_id, {'foo': 'bar'}])
-    data = json.dumps({'method': 'bogus._check_job', 'params': [ job_id]})
+    data = json.dumps({'method': 'bogus._check_job', 'params': [job_id]})
     response = _post(data)
     assert 'result' in response.json
     assert response.json['result'][0]['finished'] is True
@@ -59,7 +63,7 @@ def test_index_post():
 
 @patch('JobRunner.callback_server.uuid', autospec=True)
 def test_index_submit_sync(mock_uuid):
-    out_q= Queue()
+    out_q = Queue()
     in_q = Queue()
     conf = {
             'token': _TOKEN,
@@ -70,7 +74,6 @@ def test_index_submit_sync(mock_uuid):
     mock_uuid.uuid1.return_value = 'bogus'
     data = json.dumps({'method': 'bogus.test'})
     in_q.put(['output', 'bogus', {'foo': 'bar'}])
-    
     response = _post(data)
     assert 'finished' in response.json
     assert 'foo' in response.json

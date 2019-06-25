@@ -7,12 +7,13 @@ from nose.plugins.attrib import attr
 from queue import Queue
 from time import sleep
 
+
 class MockLogger(object):
     def __init__(self):
         self.lines = []
         self.errors = []
         self.all = []
-    
+
     def log_lines(self, lines):
         self.all.extend(lines)
 
@@ -40,11 +41,12 @@ class CatalogCacheTest(unittest.TestCase):
         vols = [{
          'host_dir': '/tmp',
          'container_dir': '/tmp',
-         'read_only': 1   
+         'read_only': 1
         }]
         labels = {}
         q = Queue()
-        self.sr.run('mock_app:latest', 'mock_app:latest', env, vols, labels, False, [q])
+        self.sr.run('mock_app:latest', 'mock_app:latest', env, vols, labels,
+                    False, [q])
         result = q.get()
         print(self.logger.all)
         print(result)

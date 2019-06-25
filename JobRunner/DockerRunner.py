@@ -6,6 +6,7 @@ from time import time as _time
 from time import sleep as _sleep
 import sys
 
+
 class DockerRunner:
     """
     This class provides the container interface for Docker.
@@ -45,12 +46,14 @@ class DockerRunner:
             while c.status in ['created', 'running']:
                 c.reload()
                 now = int(_time())
-                sout = c.logs(stdout=True, stderr=False, since=last, until=now, timestamps=True)
-                serr = c.logs(stdout=False, stderr=True, since=last, until=now, timestamps=True)
+                sout = c.logs(stdout=True, stderr=False, since=last, until=now,
+                              timestamps=True)
+                serr = c.logs(stdout=False, stderr=True, since=last, until=now,
+                              timestamps=True)
                 lines = self._sort_logs(sout, serr)
                 if self.logger is not None:
                     self.logger.log_lines(lines)
-                last=now
+                last = now
                 _sleep(1)
             c.remove()
             self.containers.remove(c)
@@ -73,21 +76,18 @@ class DockerRunner:
             id = self.docker.images.pull(image).id
         return id
 
-
     def run(self, job_id, image, env, vols, labels, subjob, queues):
         c = self.docker.containers.run(image, 'async',
-                                   environment=env,
-                                   detach=True,
-                                   labels=labels,
-                                   volumes=vols)
+                                       environment=env,
+                                       detach=True,
+                                       labels=labels,
+                                       volumes=vols)
         self.containers.append(c)
         # Start a thread to monitor output and handle finished containers
-        # 
-        t=Thread(target=self._shepherd, args=[c, job_id, subjob, queues])
+        t = Thread(target=self._shepherd, args=[c, job_id, subjob, queues])
         self.threads.append(t)
         t.start()
         return c
-
 
     def remove(self, c):
         try:

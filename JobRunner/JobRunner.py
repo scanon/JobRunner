@@ -15,6 +15,7 @@ import socket
 import signal
 from .CatalogCache import CatalogCache
 
+
 class JobRunner(object):
     """
     This class provides the mechanisms to launch a KBase job
@@ -44,7 +45,7 @@ class JobRunner(object):
         self.cc = CatalogCache(config)
         signal.signal(signal.SIGINT, self.shutdown)
         print("Added signal handler")
-    
+
     def _init_config(self, config, job_id, njs_url):
         """
         Initialize config dictionary
@@ -88,7 +89,6 @@ class JobRunner(object):
                     items = line.split(':')
                     if len(items) == 3:
                         return items[2]
-        
         return "Unknown"
 
     def _submit(self, config, job_id, data, subjob=True):
@@ -99,17 +99,21 @@ class JobRunner(object):
         git_url = module_info['git_url']
         git_commit = module_info['git_commit_hash']
         if not module_info['cached']:
-            self.logger.log('Running module {}: url: {} commit: {}'.format(module, git_url, git_commit))
+            fstr = 'Running module {}: url: {} commit: {}'
+            self.logger.log(fstr.format(module, git_url, git_commit))
         else:
             version = module_info['version']
-            f = 'WARNING: Module {} was already used once for this job. Using cached version: url: {} commit: {} version: {} release: release'
+            f = 'WARNING: Module {} was already used once for this job. '
+            f += 'Using cached version: url: {} '
+            f += 'commit: {} version: {} release: release'
             self.logger.error(f.format(module, git_url, git_commit, version))
 
         vm = self.cc.get_volume_mounts(module, method, self.client_group)
         config['volume_mounts'] = vm
-        action = self.mr.run(config, module_info, data, job_id, callback=self.callback_url, subjob=subjob,
+        action = self.mr.run(config, module_info, data, job_id,
+                             callback=self.callback_url, subjob=subjob,
                              fin_q=self.jr_queue)
-        self._update_prov(action)        
+        self._update_prov(action)
 
     def _cancel(self):
         self.mr.cleanup_all()
@@ -119,7 +123,6 @@ class JobRunner(object):
         print("Recieved an interupt")
         # Send a cancel to the queue
         self.jr_queue.put(['cancel', None, None])
-        #sys.exit()
 
     def _watch(self, config):
         # Run a thread to check for expired token
@@ -128,23 +131,24 @@ class JobRunner(object):
         ct = 1
         while cont:
             try:
-                req=self.jr_queue.get(timeout=1)
-                if req[0]=='submit':
+                req = self.jr_queue.get(timeout=1)
+                if req[0] == 'submit':
                     self._submit(config, req[1], req[2])
                     ct += 1
-                elif req[0]=='finished':
+                elif req[0] == 'finished':
                     subjob = True
                     job_id = req[1]
-                    if job_id==self.job_id:
-                        subjob=False
+                    if job_id == self.job_id:
+                        subjob = False
                     output = self.mr.get_output(job_id, subjob=subjob)
                     self.callback_queue.put(['output', job_id, output])
                     ct -= 1
                     if not subjob:
                         if ct > 0:
-                            self.logger.error("Orphaned containers may be present")
+                            err = "Orphaned containers may be present"
+                            self.logger.error(err)
                         return output
-                elif req[0]=='cancel':
+                elif req[0] == 'cancel':
                     self._cancel()
                     return {}
             except Empty:
@@ -158,7 +162,6 @@ class JobRunner(object):
                 self._cancel()
                 return {'error': 'Canceled or unexpected error'}
 
-
     def _init_callback_url(self):
         # Find a free port and Start up callback server
         if os.environ.get('CALLBACK_IP') is not None:
@@ -166,7 +169,7 @@ class JobRunner(object):
             self.logger.log("Callback IP provided (%s)" % (self.ip))
         else:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            s.connect(("gmail.com",80))
+            s.connect(("gmail.com", 80))
             self.ip = s.getsockname()[0]
             s.close()
         sock = socket.socket()
@@ -177,7 +180,6 @@ class JobRunner(object):
         url = 'http://%s:%s/' % (self.ip, self.port)
         self.logger.log("Job runner recieved Callback URL %s" % (url))
         self.callback_url = url
-
 
     def _update_prov(self, action):
         self.prov.add_subaction(action)
@@ -195,14 +197,17 @@ class JobRunner(object):
 
     def run(self):
         """
-        This method starts the actual run.  This is a blocking operation and will
-        not return until the job finishes or encounters and error.
+        This method starts the actual run.  This is a blocking operation and
+        will not return until the job finishes or encounters and error.
         This method also handles starting up the callback server.
         """
-        self.logger.log('Running on {} ({}) in {}'.format(self.hostname, self.ip, self.workdir))
+        self.logger.log('Running on {} ({}) in {}'.format(self.hostname,
+                                                          self.ip,
+                                                          self.workdir))
         self.logger.log('Client group: {}'.format(self.client_group))
 
-        # Check to see if the job was run before or canceled already. If so, log it
+        # Check to see if the job was run before or canceled already.
+        # If so, log it
         if not self._check_job_status():
             self.logger.error("Job already run or canceled")
             sys.exit(1)
@@ -219,8 +224,8 @@ class JobRunner(object):
         config['job_id'] = self.job_id
 
         server_version = config['ee.server.version']
-        self.logger.log('Server version of Execution Engine: {}'.format(server_version))
-
+        fstr = 'Server version of Execution Engine: {}'
+        self.logger.log(fstr.format(server_version))
 
         # Update job as started and log it
         self.njs.update_job({'job_id': self.job_id, 'is_started': 1})
@@ -232,7 +237,8 @@ class JobRunner(object):
         self.prov = Provenance(params)
 
         # Start the callback server
-        cb_args = [self.ip, self.port, self.jr_queue, self.callback_queue, self.token]
+        cb_args = [self.ip, self.port, self.jr_queue, self.callback_queue,
+                   self.token]
         cbs = Process(target=start_callback_server, args=cb_args)
         cbs.start()
 
@@ -244,9 +250,10 @@ class JobRunner(object):
         cbs.kill()
         self.logger.log('Job is done')
         self.njs.finish_job(self.job_id, output)
-        # TODO: Attempt to clean up any running docker containers (if something crashed, for example)
+        # TODO: Attempt to clean up any running docker containers
+        #       (if something crashed, for example)
         return output
-        
-        # Run docker or shifter	and keep a record of container id and subjob container ids
-        # Run a job shutdown hook
 
+        # Run docker or shifter	and keep a record of container id and
+        #  subjob container ids
+        # Run a job shutdown hook

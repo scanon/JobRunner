@@ -9,6 +9,7 @@ app = Sanic()
 outputs = dict()
 prov = None
 
+
 def _check_finished():
     global prov
     in_q = app.config['in_q']
@@ -16,9 +17,9 @@ def _check_finished():
         # Flush the queue
         while True:
             [mtype, fjob_id, output] = in_q.get(block=False)
-            if mtype=='output':
+            if mtype == 'output':
                 outputs[fjob_id] = output
-            elif mtype=='prov':
+            elif mtype == 'prov':
                 prov = output
     except Empty:
         pass
@@ -48,7 +49,7 @@ async def _process_rpc(data, token):
     # Provenance
     elif method.startswith('get_provenance'):
         _check_finished()
-        return {'result':[prov]}
+        return {'result': [prov]}
     else:
         if token != app.config.get('token'):
             abort(401)
@@ -71,9 +72,9 @@ async def _process_rpc(data, token):
 @app.route("/", methods=['GET', 'POST'])
 async def root(request):
         data = request.json
-        if request.method=='POST' and data is not None and 'method' in data:
+        if request.method == 'POST' and data is not None and 'method' in data:
             token = request.headers.get('Authorization')
-            return  json(await _process_rpc(data, token))
+            return json(await _process_rpc(data, token))
         return json({})
 
 
@@ -85,7 +86,6 @@ def start_callback_server(ip, port, out_queue, in_queue, token):
     }
     app.config.update(conf)
     app.run(host=ip, port=port, debug=False, access_log=False)
-        
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=8000)

@@ -9,6 +9,7 @@ import sys
 # TODO: Get secure params (e.g. username and password)
 # Write out config file with all kbase endpoints / secure params
 
+
 class MethodRunner:
     """
     This class marshalls request for jobs and launches the containers.
@@ -31,11 +32,10 @@ class MethodRunner:
         self.job_dir = os.path.join(self.workdir, 'workdir')
         runtime = config.get('runtime', 'docker')
         self.containers = []
-        if runtime=='docker':
+        if runtime == 'docker':
             self.runner = DockerRunner(logger=logger)
         else:
             raise OSError("Unknown runtime")
-
 
     def _init_workdir(self, config, job_dir, params):
         # Create all the directories
@@ -55,7 +55,8 @@ class MethodRunner:
           'shock_url': config['shock.url'],
           'handle_url': config['handle.url'],
           'auth_service_url': config['auth-service-url'],
-          'auth_service_url_allow_insecure': config['auth-service-url-allow-insecure'],
+          'auth_service_url_allow_insecure':
+          config['auth-service-url-allow-insecure'],
           'scratch': '/kb/module/work/tmp'
            }
 
@@ -77,7 +78,6 @@ class MethodRunner:
         with open(job_dir + '/token', 'w') as f:
             f.write(self.token)
 
-
         return True
 
     def _get_job_dir(self, job_id, subjob=False):
@@ -86,11 +86,12 @@ class MethodRunner:
         else:
             return self.job_dir
 
-
-    def run(self, config, module_info, params, job_id, fin_q=None, callback=None, subjob=False):
+    def run(self, config, module_info, params, job_id, fin_q=None,
+            callback=None, subjob=False):
         """
         Run the method.  This is used for subjobs too.
-        This is a blocking call.  It will not return until the job/process exits.
+        This is a blocking call.  It will not return until the
+        job/process exits.
         """
         # Mkdir workdir/tmp
         job_dir = self._get_job_dir(job_id, subjob=subjob)
@@ -106,9 +107,9 @@ class MethodRunner:
             self.logger.error("No id returned for image")
 
         if subjob:
-            self.logger.log('Subjob method: {} JobID: {}'.format(params['method'], job_id))
+            fstr = 'Subjob method: {} JobID: {}'
+            self.logger.log(fstr.format(params['method'], job_id))
         self.logger.log('Running docker container for image: {}'.format(image))
-
 
         # Initialize workdir
         self._init_workdir(config, job_dir, params)
@@ -127,12 +128,13 @@ class MethodRunner:
                 vols[k] = {
                     'bind': v['container_dir']
                 }
-                if v['read_only'] or v['read_only']==1:
+                if v['read_only'] or v['read_only'] == 1:
                     vols[k]['mode'] = 'ro'
         # Check to see if that image exists, and if refdata exists
         # paths to tmp dirs, refdata, volume mounts/binds
         if 'data_version' in module_info:
-            ref_data = os.path.join(self.refbase, module_info['data_folder'], module_info['data_version'])
+            ref_data = os.path.join(self.refbase, module_info['data_folder'],
+                                    module_info['data_version'])
             vols[ref_data] = {'bind': '/data', 'mode': 'ro'}
         # TODO: Handle extra volumes
         env = {
@@ -151,7 +153,7 @@ class MethodRunner:
             "njs_endpoint": "https://kbase.us/services/njs_wrapper",
             "parent_job_id": "",
             "user_name": config['user'],
-            "wsid": str(params.get('wsid',''))
+            "wsid": str(params.get('wsid', ''))
         }
 
         # If there is a fin_q then run this async
@@ -164,19 +166,28 @@ class MethodRunner:
         # TODO Do we need to do more for error handling?
         c = self.runner.run(job_id, image, env, vols, labels, subjob, [fin_q])
         self.containers.append(c)
-        #args = [job_id, image, env, vols, labels, subjob, [fin_q]]
         return action
 
     def get_output(self, job_id, subjob=True):
         # Attempt to read output file and see if it is well formed
         # Throw errors if not
-        of = os.path.join(self._get_job_dir(job_id, subjob=subjob), 'output.json')
+        of = os.path.join(self._get_job_dir(job_id, subjob=subjob),
+                          'output.json')
         if os.path.exists(of):
             with open(of) as json_file:
                 output = json.load(json_file)
         else:
             self.logger.error("No output")
-            return None
+            result = {
+                'error': {
+                    "code": -32601,
+                    "name": "Output not found",
+                    "message": "No output generated",
+                    "error": "No output generated"
+                }
+            }
+
+            return result
 
         if 'error' in output:
             self.logger.error("Error in job")

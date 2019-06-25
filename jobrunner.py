@@ -23,6 +23,7 @@ def _get_token():
             sys.exit(2)
     return token
 
+
 def _get_admin_token():
     if _ADMIN_TOKEN_ENV not in os.environ:
         print("Missing admin token needed for volume mounts.")
@@ -32,7 +33,8 @@ def _get_admin_token():
         print("Failed to sanitize environment")
     return admin_token
 
-def main(): 
+
+def main():
     # Input job id and njs_service URL
     if len(sys.argv) == 3:
         job_id = sys.argv[1]
@@ -45,13 +47,14 @@ def main():
     if not os.path.exists(config['workdir']):
         os.makedirs(config['workdir'])
     config['catalog-service-url'] = njs_url.replace('njs_wrapper', 'catalog')
-    config['auth-service-url'] = njs_url.replace('njs_wrapper', 'auth/api/legacy/KBase/Sessions/Login')
+    auth_ext = 'auth/api/legacy/KBase/Sessions/Login'
+    config['auth-service-url'] = njs_url.replace('njs_wrapper', auth_ext)
 
     token = _get_token()
     at = _get_admin_token()
     if not os.path.exists(config['workdir']):
         os.makedirs(config['workdir'])
-    
+
     try:
         jr = JobRunner(config, njs_url, job_id, token, at)
         jr.run()

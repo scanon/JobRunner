@@ -1,5 +1,6 @@
 from clients.CatalogClient import Catalog
 
+
 class CatalogCache(object):
     def __init__(self, config):
         self.catalog_url = config.get('catalog-service-url')
@@ -30,10 +31,10 @@ class CatalogCache(object):
             # Get the image version from the catalog and cache it
             module_info = self.catalog.get_module_version(req)
             module_info['cached'] = False
-            self.module_cache[module] =  module_info
+            self.module_cache[module] = module_info
         else:
             # Use the cache
             module_info = self.module_cache[module]
             module_info['cached'] = True
-            
+
         return module_info
