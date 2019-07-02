@@ -96,7 +96,7 @@ class DockerRunner:
             pass
 
         try:
-            c.remove
+            c.remove()
         except:
             pass
 

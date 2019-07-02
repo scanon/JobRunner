@@ -5,6 +5,8 @@ import os
 from clients.NarrativeJobServiceClient import NarrativeJobService
 
 
+# TODO: Add a buffer  we may need some flush thread too.
+
 class Logger(object):
 
     def __init__(self, njs_url, job_id, njs=None):

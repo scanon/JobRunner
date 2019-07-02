@@ -9,6 +9,7 @@ class Provenance(object):
         self.actions = dict()
         t = datetime.now(timezone.utc).astimezone().replace(microsecond=0)
         desc = 'KBase SDK method run via the KBase Execution Engine'
+        # TODO may need to check that service-ver is set
         self.prov = {
             'time': t.isoformat(),
             'service': module,

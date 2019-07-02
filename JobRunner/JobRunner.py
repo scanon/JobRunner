@@ -132,6 +132,7 @@ class JobRunner(object):
             try:
                 req = self.jr_queue.get(timeout=1)
                 if req[0] == 'submit':
+                    # TODO fail if there are too many subjobs already
                     self._submit(config, req[1], req[2])
                     ct += 1
                 elif req[0] == 'finished':

@@ -70,6 +70,7 @@ class MethodRunner:
             "params": params['params'],
             "context": dict()
             }
+        # TODO: fill in context
         ijson = job_dir + '/input.json'
         with open(ijson, 'w') as f:
             f.write(json.dumps(input))
