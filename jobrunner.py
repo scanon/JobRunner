@@ -49,6 +49,8 @@ def main():
     config['catalog-service-url'] = njs_url.replace('njs_wrapper', 'catalog')
     auth_ext = 'auth/api/legacy/KBase/Sessions/Login'
     config['auth-service-url'] = njs_url.replace('njs_wrapper', auth_ext)
+    if 'USE_SHIFTER' in os.environ:
+        config['runtime'] = 'shifter'
 
     token = _get_token()
     at = _get_admin_token()

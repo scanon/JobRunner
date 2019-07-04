@@ -20,13 +20,12 @@ class Logger(object):
         print("Logger initialized for %s" % (job_id))
 
     def log_lines(self, lines):
-        for line in lines:
-            if self.debug:
-                print(line['line'], flush=True)
-            # if line['is_error']:
-            #     sys.stderr.write(line+'\n')
-            # else:
-            #     print(line['line'])
+        if self.debug:
+            for line in lines:
+                if line['is_error']:
+                    sys.stderr.write(line+'\n')
+                else:
+                    print(line['line'])
         self.njs.add_job_logs(self.job_id, lines)
 
     def log(self, line):

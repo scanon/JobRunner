@@ -1,4 +1,5 @@
 from .DockerRunner import DockerRunner
+from .ShifterRunner import ShifterRunner
 import os
 import json
 from time import time as _time
@@ -34,6 +35,8 @@ class MethodRunner:
         self.containers = []
         if runtime == 'docker':
             self.runner = DockerRunner(logger=logger)
+        elif runtime == 'shifter':
+            self.runner = ShifterRunner(logger=logger)
         else:
             raise OSError("Unknown runtime")
 
