@@ -144,7 +144,8 @@ class MethodRunner:
                 k = v['host_dir']
                 k = k.replace('${username}', config['user'])
                 if not os.path.exists(k):
-                    self.logger.error("Volume mount (%s) doesn't exist." % (k))
+                    estr = "Volume mount ({}) doesn't exist.".format(k)
+                    self.logger.error(estr)
                     raise OSError("Missing volume mount")
                 vols[k] = {
                     'bind': v['container_dir']
@@ -165,12 +166,12 @@ class MethodRunner:
         # Add secure params
         if module_info.get('secure_config_params') is not None:
             for p in module_info['secure_config_params']:
-                k = 'KBASE_SECURE_CONFIG_PARAM_%s' % (p['param_name'])
+                k = 'KBASE_SECURE_CONFIG_PARAM_{}'.format(p['param_name'])
                 env[k] = p['param_value']
 
         # Set up labels used for job administration purposes
         labels = {
-            "app_id": "%s/%s" % (module, method),
+            "app_id": "{}/{}".format(module, method),
             "app_name": method,
             "condor_id": os.environ.get('CONDOR_ID'),
             "image_name": image,
@@ -191,7 +192,7 @@ class MethodRunner:
             'commit': module_info['git_commit_hash']
         }
         # Do we need to do more for error handling?
-        c = self.runner.run(job_id, image, env, vols, labels, subjob, [fin_q])
+        c = self.runner.run(job_id, image, env, vols, labels, [fin_q])
         self.containers.append(c)
         return action
 
@@ -207,7 +208,7 @@ class MethodRunner:
                     "code": -32601,
                     "name": "Too much output from a method",
                     "message": "Method returned too much output " +
-                               "(%d > %d)" % (size, max_size)
+                               "({} > {})".format(size, max_size)
                 }
                 return {"error": e}
 

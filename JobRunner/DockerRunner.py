@@ -20,35 +20,35 @@ class DockerRunner:
         self.threads = []
         self.log_interval = 1
 
-    def _sort_logs(self, sout, serr):
+    def _sort_lines_by_time(self, sout, serr):
         """
         This is an internal function to sort and interlace output for NJS.
         This is not fully implemented yet and sould be rethought.
         """
 
-        tslines = dict()
+        lines_by_time = dict()
         if len(sout) > 0:
             ierr = 0
             for line in sout.decode("utf-8").split('\n'):
                 if len(line) > 0:
                     (ts, txt) = line.split(maxsplit=1)
-                    if ts not in tslines:
-                        tslines[ts] = []
-                    tslines[ts].append({'line': txt, 'is_error': ierr})
+                    if ts not in lines_by_time:
+                        lines_by_time[ts] = []
+                    lines_by_time[ts].append({'line': txt, 'is_error': ierr})
         if len(serr) > 0:
             ierr = 1
             for line in serr.decode("utf-8").split('\n'):
                 if len(line) > 0:
                     (ts, txt) = line.split(maxsplit=1)
-                    if ts not in tslines:
-                        tslines[ts] = []
-                    tslines[ts].append({'line': txt, 'is_error': ierr})
+                    if ts not in lines_by_time:
+                        lines_by_time[ts] = []
+                    lines_by_time[ts].append({'line': txt, 'is_error': ierr})
         nlines = []
-        for ts in sorted(tslines.keys()):
-            nlines.extend(tslines[ts])
+        for ts in sorted(lines_by_time.keys()):
+            nlines.extend(lines_by_time[ts])
         return nlines
 
-    def _shepherd(self, c, job_id, subjob, queues):
+    def _shepherd(self, c, job_id, queues):
         last = 1
         try:
             dolast = False
@@ -58,7 +58,7 @@ class DockerRunner:
                               timestamps=True)
                 serr = c.logs(stdout=False, stderr=True, since=last, until=now,
                               timestamps=True)
-                lines = self._sort_logs(sout, serr)
+                lines = self._sort_lines_by_time(sout, serr)
                 if self.logger is not None:
                     self.logger.log_lines(lines)
                 last = now
@@ -100,7 +100,7 @@ class DockerRunner:
             id = self.docker.images.pull(image).id
         return id
 
-    def run(self, job_id, image, env, vols, labels, subjob, queues):
+    def run(self, job_id, image, env, vols, labels, queues):
         c = self.docker.containers.run(image, 'async',
                                        environment=env,
                                        detach=True,
@@ -108,7 +108,7 @@ class DockerRunner:
                                        volumes=vols)
         self.containers.append(c)
         # Start a thread to monitor output and handle finished containers
-        t = Thread(target=self._shepherd, args=[c, job_id, subjob, queues])
+        t = Thread(target=self._shepherd, args=[c, job_id, queues])
         self.threads.append(t)
         t.start()
         return c

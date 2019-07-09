@@ -55,7 +55,7 @@ class ShifterRunner:
 
         return id
 
-    def run(self, job_id, image, env, vols, labels, subjob, queues):
+    def run(self, job_id, image, env, vols, labels, queues):
         cmd = [
             'shifter',
             '--image=%s' % (image)

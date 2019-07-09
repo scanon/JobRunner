@@ -1,4 +1,3 @@
-import sys
 import os
 from time import sleep as _sleep
 from .logger import Logger
@@ -79,7 +78,7 @@ class JobRunner(object):
 
     def _get_cgroup(self):
         pid = os.getpid()
-        cfile = "/proc/%d/cgroup" % (pid)
+        cfile = "/proc/{}/cgroup".format(pid)
         if not os.path.exists(cfile):
             return None
         with open(cfile) as f:
@@ -169,7 +168,7 @@ class JobRunner(object):
         # Find a free port and Start up callback server
         if os.environ.get('CALLBACK_IP') is not None:
             self.ip = os.environ.get('CALLBACK_IP')
-            self.logger.log("Callback IP provided (%s)" % (self.ip))
+            self.logger.log("Callback IP provided ({})".format(self.ip))
         else:
             s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
             s.connect(("gmail.com", 80))
@@ -180,8 +179,8 @@ class JobRunner(object):
         sock.bind(('', 0))
         self.port = sock.getsockname()[1]
         sock.close()
-        url = 'http://%s:%s/' % (self.ip, self.port)
-        self.logger.log("Job runner recieved Callback URL %s" % (url))
+        url = 'http://{}:{}/'.format(self.ip, self.port)
+        self.logger.log("Job runner recieved Callback URL {}".format(url))
         self.callback_url = url
 
     def _update_prov(self, action):

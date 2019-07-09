@@ -33,7 +33,7 @@ class MockRunner(object):
     def get_image(self, image):
         return '1234'
 
-    def run(self, job_id, image, env, vols, labels, subjob, qs):
+    def run(self, job_id, image, env, vols, labels, qs):
         self.env = env
 
 

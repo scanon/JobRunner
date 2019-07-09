@@ -46,7 +46,7 @@ class DockerRunnerTest(unittest.TestCase):
         of = '/tmp/output.json'
         if os.path.exists(of):
             os.remove(of)
-        c = dr.run('1234', 'mock_app', {}, vols, {}, False, [])
+        c = dr.run('1234', 'mock_app', {}, vols, {}, [])
         _sleep(2)
         self.assertTrue(os.path.exists(of))
         self.assertEquals(len(mlog.all), 2)
@@ -58,7 +58,7 @@ class DockerRunnerTest(unittest.TestCase):
         sout += u'2019-07-08T23:21:32.508896500Z 4\n'
         serr = u'2019-07-08T23:21:32.508797700Z 3\n'
         serr += u'2019-07-08T23:21:32.508797600Z 2\n'
-        lines = dr._sort_logs(sout.encode('utf-8'), serr.encode('utf-8'))
+        lines = dr._sort_lines_by_time(sout.encode('utf-8'), serr.encode('utf-8'))
         self.assertEquals(lines[0]['line'],'1')
         self.assertEquals(lines[1]['line'],'2')
         self.assertEquals(lines[2]['line'],'3')
