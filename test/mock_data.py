@@ -84,3 +84,19 @@ CATALOG_LIST_VOLUME_MOUNTS = [
         }]
     }
 ]
+
+CATALOG_GET_SECURE_CONFIG_PARAMS = [
+    {
+        u'module_name': u'mock_app',
+        u'param_name': u'param1',
+        u'param_value': u'value1',
+        u'version': u''
+    },
+    {
+        u'is_password': 0,
+        u'module_name': u'mock_app',
+        u'param_name': u'param2',
+        u'param_value': u'value2',
+        u'version': u''
+    }
+]
