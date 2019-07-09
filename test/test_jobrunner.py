@@ -9,6 +9,25 @@ from nose.plugins.attrib import attr
 from copy import deepcopy
 from .mock_data import CATALOG_GET_MODULE_VERSION, NJS_JOB_PARAMS, \
         CATALOG_LIST_VOLUME_MOUNTS
+from requests import ConnectionError
+
+
+class MockLogger(object):
+    def __init__(self):
+        self.lines = []
+        self.errors = []
+        self.all = []
+
+    def log_lines(self, lines):
+        self.all.extend(lines)
+
+    def log(self, line):
+        self.lines.append(line)
+        self.all.append([line, 0])
+
+    def error(self, line):
+        self.errors.append(line)
+        self.all.append([line, 1])
 
 
 class JobRunnerTest(unittest.TestCase):
@@ -60,7 +79,8 @@ class JobRunnerTest(unittest.TestCase):
         rv = deepcopy(CATALOG_GET_MODULE_VERSION)
         rv['docker_img_name'] = 'test/runtester:latest'
         jr.cc.catalog.get_module_version = MagicMock(return_value=rv)
-        jr.cc.catadmin.list_volume_mounts = MagicMock(return_value=[])
+        jr.cc.catalog.list_volume_mounts = MagicMock(return_value=[])
+        jr.cc.catalog.get_secure_config_params = MagicMock(return_value=None)
         jr.logger.njs.add_job_logs = MagicMock(return_value=rv)
         jr.njs.get_job_params.return_value = params
         jr.njs.check_job_canceled.return_value = {'finished': False}
@@ -82,9 +102,10 @@ class JobRunnerTest(unittest.TestCase):
         rv = deepcopy(CATALOG_GET_MODULE_VERSION)
         rv['docker_img_name'] = 'mock_app:latest'
         # jr.mr.catalog.get_module_version = MagicMock(return_value=rv)
-        # jr.mr.catadmin.list_volume_mounts = MagicMock(return_value=[])
+        # jr.mr.catalog.list_volume_mounts = MagicMock(return_value=[])
         jr.cc.catalog.get_module_version = MagicMock(return_value=rv)
-        jr.cc.catadmin.list_volume_mounts = MagicMock(return_value=[])
+        jr.cc.catalog.list_volume_mounts = MagicMock(return_value=[])
+        jr.cc.catalog.get_secure_config_params = MagicMock(return_value=None)
         jr.logger.njs.add_job_logs = MagicMock(return_value=rv)
         jr.njs.get_job_params.return_value = params
         jr.njs.check_job_canceled.return_value = {'finished': False}
@@ -107,7 +128,8 @@ class JobRunnerTest(unittest.TestCase):
         rv['docker_img_name'] = 'mock_app:latest'
         vols = deepcopy(CATALOG_LIST_VOLUME_MOUNTS)
         jr.cc.catalog.get_module_version = MagicMock(return_value=rv)
-        jr.cc.catadmin.list_volume_mounts = MagicMock(return_value=vols)
+        jr.cc.catalog.list_volume_mounts = MagicMock(return_value=vols)
+        jr.cc.catalog.get_secure_config_params = MagicMock(return_value=None)
         jr.logger.njs.add_job_logs = MagicMock(return_value=rv)
         jr.njs.get_job_params.return_value = params
         jr.njs.check_job_canceled.return_value = {'finished': False}
@@ -128,13 +150,14 @@ class JobRunnerTest(unittest.TestCase):
         self._cleanup(self.jobid)
         params = deepcopy(NJS_JOB_PARAMS)
         params[0]['method'] = 'RunTester.run_RunTester'
-        params[0]['params'] = [{'depth': 3, 'size': 1000, 'parallel': 5}]
+        params[0]['params'] = [{'depth': 3, 'size': 1000, 'parallel': 4}]
         jr = JobRunner(self.config, self.njs_url, self.jobid, self.token,
                        self.admin_token)
         rv = deepcopy(CATALOG_GET_MODULE_VERSION)
         rv['docker_img_name'] = 'test/runtester:latest'
         jr.cc.catalog.get_module_version = MagicMock(return_value=rv)
-        jr.cc.catadmin.list_volume_mounts = MagicMock(return_value=[])
+        jr.cc.catalog.list_volume_mounts = MagicMock(return_value=[])
+        jr.cc.catalog.get_secure_config_params = MagicMock(return_value=None)
         jr.logger.njs.add_job_logs = MagicMock(return_value=rv)
         jr.njs.get_job_params.return_value = params
         nf = {'finished': False}
@@ -143,6 +166,31 @@ class JobRunnerTest(unittest.TestCase):
         jr.auth.get_user.return_value = "bogus"
         out = jr.run()
         self.assertIsNotNone(out)
+        # Check that all containers are gone
+
+    @attr('offline')
+    @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
+    @patch('JobRunner.JobRunner.NJS', autospec=True)
+    def test_max_jobs(self, mock_njs, mock_auth):
+        self._cleanup(self.jobid)
+        params = deepcopy(NJS_JOB_PARAMS)
+        params[0]['method'] = 'RunTester.run_RunTester'
+        params[0]['params'] = [{'depth': 2, 'size': 1000, 'parallel': 5}]
+        config = deepcopy(self.config)
+        config['max_tasks'] = 2
+        jr = JobRunner(config, self.njs_url, self.jobid, self.token,
+                       self.admin_token)
+        rv = deepcopy(CATALOG_GET_MODULE_VERSION)
+        rv['docker_img_name'] = 'test/runtester:latest'
+        jr.cc.catalog.get_module_version = MagicMock(return_value=rv)
+        jr.cc.catalog.list_volume_mounts = MagicMock(return_value=[])
+        jr.cc.catalog.get_secure_config_params = MagicMock(return_value=None)
+        jr.logger.njs.add_job_logs = MagicMock(return_value=rv)
+        jr.njs.get_job_params.return_value = params
+        jr.njs.check_job_canceled.return_value = {'finished': False}
+        jr.auth.get_user.return_value = "bogus"
+        out = jr.run()
+        self.assertIn('error', out)
         # Check that all containers are gone
 
     @attr('online')
@@ -174,3 +222,35 @@ class JobRunnerTest(unittest.TestCase):
         jr.auth.get_user.side_effect = OSError()
         with self.assertRaises(Exception):
             jr.run()
+
+    @patch('JobRunner.JobRunner.NJS', autospec=True)
+    @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
+    def test_canceled_job(self, mock_njs, mock_auth):
+        self._cleanup(self.jobid)
+        mlog = MockLogger()
+        params = deepcopy(NJS_JOB_PARAMS)
+        os.environ['KB_AUTH_TOKEN'] = 'bogus'
+        jr = JobRunner(self.config, self.njs_url, self.jobid, self.token,
+                       self.admin_token)
+        jr.logger = mlog
+        jr.njs.check_job_canceled.return_value = {'finished': True}
+        with self.assertRaises(OSError):
+            jr.run()
+        self.assertEquals(mlog.errors[0], 'Job already run or canceled')
+
+    @patch('JobRunner.JobRunner.NJS', autospec=True)
+    @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
+    def test_error_update(self, mock_njs, mock_auth):
+        self._cleanup(self.jobid)
+        mlog = MockLogger()
+        params = deepcopy(NJS_JOB_PARAMS)
+        os.environ['KB_AUTH_TOKEN'] = 'bogus'
+        jr = JobRunner(self.config, self.njs_url, self.jobid, self.token,
+                       self.admin_token)
+        jr.logger = mlog
+        jr.njs.check_job_canceled.return_value = {'finished': False}
+        jr.njs.update_job.side_effect = ConnectionError()
+        jr.njs.get_job_params.side_effect = ConnectionError()
+        with self.assertRaises(ConnectionError):
+            jr.run()
+        self.assertEquals(mlog.errors[0], 'Failed to get job parameters. Exiting.')
