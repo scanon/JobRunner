@@ -1,10 +1,7 @@
 import docker
-import os
-import json
 from threading import Thread
 from time import time as _time
 from time import sleep as _sleep
-import sys
 
 
 class DockerRunner:
@@ -21,30 +18,41 @@ class DockerRunner:
         self.logger = logger
         self.containers = []
         self.threads = []
+        self.log_interval = 1
 
     def _sort_logs(self, sout, serr):
         """
         This is an internal function to sort and interlace output for NJS.
         This is not fully implemented yet and sould be rethought.
         """
-        # TODO: Fix sorting
 
-        lines = []
+        tslines = dict()
         if len(sout) > 0:
+            ierr = 0
             for line in sout.decode("utf-8").split('\n'):
                 if len(line) > 0:
-                    lines.append({'line': line, 'is_error': 0})
+                    (ts, txt) = line.split(maxsplit=1)
+                    if ts not in tslines:
+                        tslines[ts] = []
+                    tslines[ts].append({'line': txt, 'is_error': ierr})
         if len(serr) > 0:
+            ierr = 1
             for line in serr.decode("utf-8").split('\n'):
                 if len(line) > 0:
-                    lines.append({'line': line, 'is_error': 1})
-        return lines
+                    (ts, txt) = line.split(maxsplit=1)
+                    if ts not in tslines:
+                        tslines[ts] = []
+                    tslines[ts].append({'line': txt, 'is_error': ierr})
+        nlines = []
+        for ts in sorted(tslines.keys()):
+            nlines.extend(tslines[ts])
+        return nlines
 
     def _shepherd(self, c, job_id, subjob, queues):
         last = 1
         try:
-            while c.status in ['created', 'running']:
-                c.reload()
+            dolast = False
+            while True:
                 now = int(_time())
                 sout = c.logs(stdout=True, stderr=False, since=last, until=now,
                               timestamps=True)
@@ -54,13 +62,29 @@ class DockerRunner:
                 if self.logger is not None:
                     self.logger.log_lines(lines)
                 last = now
-                _sleep(1)
-            c.remove()
+                if dolast:
+                    break
+                _sleep(self.log_interval)
+                try:
+                    c.reload()
+                    if c.status not in ["created", "runnning"]:
+                        dolast = True
+                except Exception:
+                    dolast = True
+            try:
+                c.remove()
+            except Exception:
+                # Maybe something already cleaned it up.  Move on.
+                pass
             self.containers.remove(c)
             for q in queues:
                 q.put(['finished', job_id, None])
-        except:
-            self.logger.error("Unexpected failure")
+        except Exception as e:
+            if self.logger is not None:
+                self.logger.error("Unexpected failure")
+            else:
+                print("Exception in docker logging for %s" % (c.id))
+                raise(e)
 
     def get_image(self, image):
         # Pull the image from the hub if we don't have it
@@ -92,24 +116,10 @@ class DockerRunner:
     def remove(self, c):
         try:
             c.kill()
-        except:
+        except Exception:
             pass
 
         try:
             c.remove()
-        except:
+        except Exception:
             pass
-
-    # def cleanup_all(self):
-    #     for c in self.containers:
-    #         try:
-    #             c.kill()
-    #         except:
-    #             continue
-    #     _sleep(1)
-    #     for c in self.containers:
-    #         try:
-    #             c.remove
-    #         except:
-    #             continue
-    #     return True
