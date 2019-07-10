@@ -128,7 +128,7 @@ class JobRunner(object):
         # Run a thread for 7 day max job runtime
         cont = True
         ct = 1
-        exp_time = self._get_token_lifetime(config)
+        exp_time = self._get_token_lifetime(config) - 600
         while cont:
             try:
                 req = self.jr_queue.get(timeout=1)

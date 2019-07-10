@@ -285,6 +285,10 @@ class JobRunnerTest(unittest.TestCase):
         exp = jr._get_token_lifetime(config)
         self.assertGreater(exp, 0)
 
+        mock_req.get.side_effect = OSError("bad request")
+        with self.assertRaises(OSError):
+            jr._get_token_lifetime(config)
+
     @attr('offline')
     @patch('JobRunner.JobRunner.NJS', autospec=True)
     @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
