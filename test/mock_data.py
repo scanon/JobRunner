@@ -100,3 +100,14 @@ CATALOG_GET_SECURE_CONFIG_PARAMS = [
         u'version': u''
     }
 ]
+
+AUTH_V2_TOKEN = {
+    'type': 'Developer',
+    'id': '91111111-1bd6-4953-a0dc-a6bb24d5e25c',
+    'expires': 1567268700544,
+    'created': 1559492700544,
+    'name': '20190602',
+    'user': 'scanon',
+    'custom': {},
+    'cachefor': 300000
+    }

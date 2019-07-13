@@ -1,5 +1,6 @@
 import os
 from time import sleep as _sleep
+from time import time as _time
 from .logger import Logger
 from clients.NarrativeJobServiceClient import NarrativeJobService as NJS
 from clients.authclient import KBaseAuth
@@ -12,6 +13,7 @@ from queue import Empty
 import socket
 import signal
 from .CatalogCache import CatalogCache
+import requests
 
 
 class JobRunner(object):
@@ -126,9 +128,15 @@ class JobRunner(object):
         # Run a thread for 7 day max job runtime
         cont = True
         ct = 1
+        exp_time = self._get_token_lifetime(config) - 600
         while cont:
             try:
                 req = self.jr_queue.get(timeout=1)
+                if _time() > exp_time:
+                    err = "Token has expired"
+                    self.logger.error(err)
+                    self._cancel()
+                    return {'error': err}
                 if req[0] == 'submit':
                     if ct > self.max_task:
                         self.logger.error("Too many subtasks")
@@ -196,6 +204,16 @@ class JobRunner(object):
             raise Exception()
 
         return user
+
+    def _get_token_lifetime(self, config):
+        try:
+            url = config.get('auth.service.url.v2')
+            header = {'Authorization': self.config['token']}
+            resp = requests.get(url, headers=header).json()
+            return resp['expires']
+        except Exception as e:
+            self.logger.error("Failed to get token lifetime")
+            raise e
 
     def run(self):
         """
