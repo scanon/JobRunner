@@ -41,16 +41,18 @@ class SpecialRunnerTest(unittest.TestCase):
         config = {}
         data = {
             'method': 'special.slurm',
-            'params': {'submit_script': 'submit.sl'}
+            'params': [{'submit_script': 'submit.sl'}]
         }
         job_id = '1234'
-        with open('/tmp/submit.sl', 'w') as f:
+        if not os.path.exists('/tmp/workdir/tmp'):
+            os.makedirs('/tmp/workdir/tmp/')
+        with open('/tmp/workdir/tmp/submit.sl', 'w') as f:
             f.write('#!/bin/sh')
             f.write('echo Hello')
         q = Queue()
         self.sr.run(config, data, job_id, fin_q=[q])
         result = q.get(timeout=10)
-        self.assertEquals(result[0], 'finished')
+        self.assertEquals(result[0], 'finished_special')
         self.assertEquals(len(result), 3)
         self.assertIn(['line1\n', 0], self.logger.all)
         self.assertIn(['line2\n', 1], self.logger.all)

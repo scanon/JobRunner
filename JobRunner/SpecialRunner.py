@@ -121,7 +121,8 @@ class SpecialRunner:
         submit = '%s_submit' % (stype)
         if 'submit_script' not in params:
             raise ValueError("Missing submit script")
-        scr = os.path.join(self.shareddir, params['submit_script'])
+        os.chdir(self.shareddir)
+        scr = params['submit_script']
         if not os.path.exists(scr):
             raise OSError("Submit script not found at %s" % (scr))
         outfile = '%s.out' % (job_id)

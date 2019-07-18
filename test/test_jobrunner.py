@@ -330,7 +330,7 @@ class JobRunnerTest(unittest.TestCase):
             f.write("echo hello")
 
         params[0]['method'] = 'special.slurm'
-        params[0]['params'] = {'submit_script': 'submit.sl'}
+        params[0]['params'] = [{'submit_script': 'submit.sl'}]
         jr._submit_special(self.config, '1234', params[0])
 
     @attr('offline')
