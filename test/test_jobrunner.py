@@ -66,13 +66,16 @@ class JobRunnerTest(unittest.TestCase):
             os.environ['KB_ADMIN_AUTH_TOKEN'] = 'bogus'
 
     def _cleanup(self, job):
-        d = os.path.join(self.workdir, job)
+        d = os.path.join(self.workdir, 'workdir')
         if os.path.exists(d):
             for fn in ['config.properties', 'input.json', 'output.json',
                        'token']:
                 if os.path.exists(os.path.join(d, fn)):
                     os.unlink(os.path.join(d, fn))
-            os.rmdir(d)
+            try:
+                os.rmdir(d)
+            except:
+                pass
 
     @attr('offline')
     @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
@@ -314,3 +317,43 @@ class JobRunnerTest(unittest.TestCase):
         out = jr.run()
         self.assertIn('error', out)
         self.assertEquals(out['error'], "Token has expired")
+
+    @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
+    @patch('JobRunner.JobRunner.NJS', autospec=True)
+    def test_special(self, mock_njs, mock_auth):
+        jr = JobRunner(self.config, self.njs_url, self.jobid, self.token,
+                       self.admin_token)
+        params = deepcopy(NJS_JOB_PARAMS)
+        ss = os.path.join(self.workdir, 'workdir/tmp', 'submit.sl')
+        with open(ss, 'w') as f:
+            f.write('#!/bin/sh')
+            f.write("echo hello")
+
+        params[0]['method'] = 'special.slurm'
+        params[0]['params'] = {'submit_script': 'submit.sl'}
+        jr._submit_special(self.config, '1234', params[0])
+
+    @attr('offline')
+    @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
+    @patch('JobRunner.JobRunner.NJS', autospec=True)
+    def test_run_slurm(self, mock_njs, mock_auth):
+        self._cleanup(self.jobid)
+        params = deepcopy(NJS_JOB_PARAMS)
+        params[0]['method'] = 'RunTester.run_RunTester'
+        params[0]['params'] = [{'do_slurm': 1}]
+        params[1]['auth-service-url'] = self.config['auth-service-url']
+        params[1]['auth.service.url.v2'] = self.config['auth2-url']
+        jr = JobRunner(self.config, self.njs_url, self.jobid, self.token,
+                       self.admin_token)
+        rv = deepcopy(CATALOG_GET_MODULE_VERSION)
+        rv['docker_img_name'] = 'test/runtester:latest'
+        jr.cc.catalog.get_module_version = MagicMock(return_value=rv)
+        jr.cc.catalog.list_volume_mounts = MagicMock(return_value=[])
+        jr.cc.catalog.get_secure_config_params = MagicMock(return_value=None)
+        jr.logger.njs.add_job_logs = MagicMock(return_value=rv)
+        jr.njs.get_job_params.return_value = params
+        jr.njs.check_job_canceled.return_value = {'finished': False}
+        jr.auth.get_user.return_value = "bogus"
+        jr._get_token_lifetime = MagicMock(return_value=self.future)
+        out = jr.run()
+        self.assertNotIn('error', out)

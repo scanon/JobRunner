@@ -5,6 +5,7 @@ from .logger import Logger
 from clients.NarrativeJobServiceClient import NarrativeJobService as NJS
 from clients.authclient import KBaseAuth
 from .MethodRunner import MethodRunner
+from .SpecialRunner import SpecialRunner
 from .callback_server import start_callback_server
 from socket import gethostname
 from multiprocessing import Process, Queue
@@ -42,6 +43,7 @@ class JobRunner(object):
         self.prov = None
         self._init_callback_url()
         self.mr = MethodRunner(self.config, job_id, logger=self.logger)
+        self.sr = SpecialRunner(self.config, job_id, logger=self.logger)
         self.cc = CatalogCache(config)
         self.max_task = config.get('max_tasks', 20)
         signal.signal(signal.SIGINT, self.shutdown)
@@ -90,6 +92,17 @@ class JobRunner(object):
                     if len(items) == 3:
                         return items[2]
         return "Unknown"
+
+    def _submit_special(self, config, job_id, data):
+        """
+        Hnadles for methods such as CWL, WDL and HPC
+        """
+        (module, method) = data['method'].split('.')
+        self.logger.log("Submit %s as a %s job" % (job_id, method))
+
+        self.sr.run(config, data, job_id,
+                    callback=self.callback_url,
+                    fin_q=[self.jr_queue])
 
     def _submit(self, config, job_id, data, subjob=True):
         (module, method) = data['method'].split('.')
@@ -142,8 +155,15 @@ class JobRunner(object):
                         self.logger.error("Too many subtasks")
                         self._cancel()
                         return {'error': 'Canceled or unexpected error'}
-                    self._submit(config, req[1], req[2])
+                    if req[2].get('method').startswith('special.'):
+                        self._submit_special(config, req[1], req[2])
+                    else:
+                        self._submit(config, req[1], req[2])
                     ct += 1
+                elif req[0] == 'finished_special':
+                    job_id = req[1]
+                    self.callback_queue.put(['output', job_id, req[2]])
+                    ct -= 1
                 elif req[0] == 'finished':
                     subjob = True
                     job_id = req[1]
@@ -163,6 +183,7 @@ class JobRunner(object):
             except Empty:
                 pass
             if ct == 0:
+                print("Count got to 0 without finish")
                 # This shouldn't happen
                 return
             # Run cancellation / finish job checker

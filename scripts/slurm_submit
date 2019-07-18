@@ -1,0 +1,10 @@
+#!/bin/sh
+#
+# Wrapper script for Slurm
+#
+
+SUBMIT=$1
+LOGFILE=$2
+ERRFILE=$3
+
+sbatch -o $LOGFILE -e $ERRFILE $SUBMIT

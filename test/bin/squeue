@@ -1,0 +1,22 @@
+#!/bin/bash
+
+JOB=$2
+SF=/tmp/mslurm-$JOB
+
+if [ ! -e $SF ] ; then
+  exit
+fi
+
+ST=$(cat $SF)
+echo $ST
+
+#if [[ "$ST" == "PD" ]] ; then
+#  NS="R"
+#elif [[ "$ST" == "R" ]] ; then
+#  echo ""
+#  NS="CG"
+#elif [[ "$ST" == "CG" ]] ; then
+#  rm $SF
+#  exit
+#fi
+#echo $NS > $SF
