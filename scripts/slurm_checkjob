@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 JS=$(squeue -j $1 -o %t --noheader)
 
