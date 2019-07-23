@@ -1,5 +1,8 @@
 #!/bin/bash
-
+# Wraper script for slurm job check
+# Args are the Job ID
+# Returns back Running, Finished, Pending or Unknown
+#
 JS=$(squeue -j $1 -o %t --noheader)
 
 if [ -z "$JS" ] ; then

@@ -1,7 +1,8 @@
 #!/bin/bash
 #
-# Wrapper script for Slurm
-#
+# Wrapper script for Slurm batch submit
+# Args are submit script, outputfile, and error file
+# Return the job id via stdout
 
 SUBMIT=$1
 LOGFILE=$2

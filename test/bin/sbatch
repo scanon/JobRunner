@@ -9,19 +9,19 @@ if [[ $1 == "run" ]] ; then
    SCR=$3
    STDOUT=$4
    STDERR=$5
-   SF=/tmp/mslurm-$JOBID
+   STATEFILE=/tmp/mslurm-$JOBID
    # Simulate pending
    sleep 1
-   echo R > $SF
+   echo R > $STATEFILE
    touch $STDOUT $STDERR
    echo "line1" > $STDOUT
    sleep 1
    echo "line2" > $STDERR
    sleep 1
    echo "line3" >> $STDOUT
-   echo CG > $SF
+   echo CG > $STATEFILE
    sleep 1
-   rm $SF
+   rm $STATEFILE
    exit
 fi
 

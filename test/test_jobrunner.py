@@ -324,8 +324,8 @@ class JobRunnerTest(unittest.TestCase):
         jr = JobRunner(self.config, self.njs_url, self.jobid, self.token,
                        self.admin_token)
         params = deepcopy(NJS_JOB_PARAMS)
-        ss = os.path.join(self.workdir, 'workdir/tmp', 'submit.sl')
-        with open(ss, 'w') as f:
+        submitscript = os.path.join(self.workdir, 'workdir/tmp', 'submit.sl')
+        with open(submitscript, 'w') as f:
             f.write('#!/bin/sh')
             f.write("echo hello")
 

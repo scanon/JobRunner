@@ -95,10 +95,10 @@ class JobRunner(object):
 
     def _submit_special(self, config, job_id, data):
         """
-        Hnadles for methods such as CWL, WDL and HPC
+        Handler for methods such as CWL, WDL and HPC
         """
         (module, method) = data['method'].split('.')
-        self.logger.log("Submit %s as a %s job" % (job_id, method))
+        self.logger.log("Submit %s as a %s:%s job" % (job_id, module, method))
 
         self.sr.run(config, data, job_id,
                     callback=self.callback_url,

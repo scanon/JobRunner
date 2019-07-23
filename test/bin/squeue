@@ -1,13 +1,13 @@
 #!/bin/bash
 
 JOB=$2
-SF=/tmp/mslurm-$JOB
+STATEFILE=/tmp/mslurm-$JOB
 
-if [ ! -e $SF ] ; then
+if [ ! -e $STATEFILE ] ; then
   exit
 fi
 
-ST=$(cat $SF)
+ST=$(cat $STATEFILE)
 echo $ST
 
 #if [[ "$ST" == "PD" ]] ; then
@@ -16,7 +16,7 @@ echo $ST
 #  echo ""
 #  NS="CG"
 #elif [[ "$ST" == "CG" ]] ; then
-#  rm $SF
+#  rm $STATEFILE
 #  exit
 #fi
-#echo $NS > $SF
+#echo $NS > $STATEFILE

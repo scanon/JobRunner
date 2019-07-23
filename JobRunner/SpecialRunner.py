@@ -24,7 +24,7 @@ class SpecialRunner:
         self.shareddir = os.path.join(self.workdir, 'workdir/tmp')
         self.containers = []
         self.threads = []
-        self.allowed = ['slurm']
+        self.allowed_types = ['slurm']
 
     _POLL = 0.1
     _POLL2 = 0.1
@@ -38,9 +38,11 @@ class SpecialRunner:
         (module, method) = data['method'].split('.')
 
         if module != 'special':
-            raise ValueError("Incorrect module should be 'special'")
+            err = "Attempting to run the wrong type of module. "
+            err += "The module should be 'special'"
+            raise ValueError(err)
 
-        if method not in self.allowed:
+        if method not in self.allowed_types:
             raise ValueError("Invalid special method type")
 
         return self._batch_submit(method, config, data, job_id, fin_q)
