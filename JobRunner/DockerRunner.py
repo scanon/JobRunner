@@ -67,7 +67,7 @@ class DockerRunner:
                 _sleep(self.log_interval)
                 try:
                     c.reload()
-                    if c.status not in ["created", "runnning"]:
+                    if c.status not in ["created", "running"]:
                         dolast = True
                 except Exception:
                     dolast = True

@@ -85,7 +85,3 @@ def start_callback_server(ip, port, out_queue, in_queue, token):
     }
     app.config.update(conf)
     app.run(host=ip, port=port, debug=False, access_log=False)
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000)
