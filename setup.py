@@ -16,7 +16,7 @@ with open(pjoin(here, 'version.py')) as f:
 
 setup_args = dict(
     name='JobRunner',
-    packages=['JobRunner'],
+    packages=['JobRunner', 'clients'],
     scripts=['scripts/jobrunner.py',
              'scripts/slurm_submit',
              'scripts/slurm_checkjob'],

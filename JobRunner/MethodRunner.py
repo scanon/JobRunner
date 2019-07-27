@@ -136,7 +136,8 @@ class MethodRunner:
             job_dir: {'bind': '/kb/module/work', 'mode': 'rw'}
         }
         if subjob:
-            wdt = os.path.join(job_dir, "/tmp")
+            parent_workdir = self._get_job_dir(job_id, subjob=False)
+            wdt = os.path.join(parent_workdir, "tmp")
             vols[wdt] = {'bind': "/kb/module/work/tmp", 'mode': 'rw'}
 
         if 'volume_mounts' in config:
