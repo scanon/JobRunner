@@ -26,8 +26,8 @@ class SpecialRunner:
         self.threads = []
         self.allowed_types = ['slurm']
 
-    _POLL = 0.1
-    _POLL2 = 0.1
+    _POLL = 10
+    _POLL2 = 10
 
     def run(self, config, data, job_id, callback=None, fin_q=[]):
         # TODO:
@@ -67,11 +67,11 @@ class SpecialRunner:
                 started = True
             elif state == "Pending":
                 self.logger.log("Pending")
-            elif state == "Finished":
+            elif state == "Finished" or state == "Unknown":
                 cont = False
-                self.logger.log("F")
+                self.logger.log("Finished")
 
-            if started and os.path.exists(outfile):
+            if os.path.exists(outfile):
                 cont = False
 
             sleep(self._POLL)
