@@ -28,6 +28,7 @@ class SpecialRunner:
 
     _POLL = 10
     _POLL2 = 10
+    _MAX_RETRY = 5
 
     def run(self, config, data, job_id, callback=None, fin_q=[]):
         # TODO:
@@ -59,6 +60,7 @@ class SpecialRunner:
         check = '%s_checkjob' % (stype)
         cont = True
         started = False
+        retry = 0
         # Wait for job to start out output file to appear
         while cont:
             state = self._check_batch_job(check, slurm_jobid)
@@ -67,9 +69,14 @@ class SpecialRunner:
                 started = True
             elif state == "Pending":
                 self.logger.log("Pending")
-            elif state == "Finished" or state == "Unknown":
+            elif state == "Finished":
                 cont = False
                 self.logger.log("Finished")
+            else:
+                if retry > self._MAX_RETRY:
+                    cont = False
+                retry += 1
+                self.logger.log("Unknown")
 
             if os.path.exists(outfile):
                 cont = False
