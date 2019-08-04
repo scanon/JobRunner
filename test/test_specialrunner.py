@@ -48,8 +48,8 @@ class SpecialRunnerTest(unittest.TestCase):
             f.write('#!/bin/sh')
             f.write('echo Hello')
         q = Queue()
-        self.sr._POLL = 0.1
-        self.sr._POLL2 = 0.1
+        self.sr._FILE_POLL = 0.1
+        self.sr._BATCH_POLL = 0.3
         self.sr.run(config, data, job_id, fin_q=[q])
         result = q.get(timeout=10)
         self.assertEquals(result[0], 'finished_special')

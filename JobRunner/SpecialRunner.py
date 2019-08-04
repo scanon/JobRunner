@@ -1,7 +1,7 @@
 import os
 from threading import Thread
 from subprocess import Popen, PIPE
-from time import sleep
+from time import sleep, time
 from select import select
 
 
@@ -26,8 +26,8 @@ class SpecialRunner:
         self.threads = []
         self.allowed_types = ['slurm']
 
-    _POLL = 10
-    _POLL2 = 10
+    _BATCH_POLL = 10
+    _FILE_POLL = 10
     _MAX_RETRY = 5
 
     def run(self, config, data, job_id, callback=None, fin_q=[]):
@@ -81,7 +81,7 @@ class SpecialRunner:
             if os.path.exists(outfile):
                 cont = False
 
-            sleep(self._POLL)
+            sleep(self._BATCH_POLL)
 
         # Tail output
         rlist = []
@@ -101,10 +101,13 @@ class SpecialRunner:
         cont = True
         if len(rlist) == 0:
             cont = False
+        next_check = 0
         while cont:
-            state = self._check_batch_job(check, slurm_jobid)
-            if state != "Running":
-                cont = False
+            if time() > next_check:
+                state = self._check_batch_job(check, slurm_jobid)
+                next_check = time() + self._BATCH_POLL
+                if state != "Running":
+                    cont = False
             r, w, e = select(rlist, [], [], 10)
             for f in r:
                 for line in f:
@@ -112,10 +115,16 @@ class SpecialRunner:
                         self.logger.log(line)
                     elif f == stderr and self.logger:
                         self.logger.error(line)
-            sleep(self._POLL2)
-        res = {'result': [{'exit_status': 0}]}
+            sleep(self._FILE_POLL)
+        # TODO: Extract real exit code
+        resp = {
+            'exit_status': 0,
+            'output_file': outfile,
+            'error_file': errfile
+        }
+        result = {'result': [resp]}
         for q in queues:
-            q.put(['finished_special', job_id, res])
+            q.put(['finished_special', job_id, result])
 
     def _batch_submit(self, stype, config, data, job_id, fin_q):
         """
