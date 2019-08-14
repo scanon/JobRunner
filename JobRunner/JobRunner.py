@@ -295,7 +295,7 @@ class JobRunner(object):
         self.logger.log('Job is done')
 
         if output.get('error'):
-            self.ee2.finish_job({'job_id': self.job_id, 'error': output.get('error')})
+            self.ee2.finish_job({'job_id': self.job_id, 'error_message': output.get('error')})
         else:
             self.ee2.finish_job({'job_id': self.job_id, 'job_output': output})
 
