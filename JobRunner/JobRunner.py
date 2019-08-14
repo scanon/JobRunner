@@ -1,20 +1,22 @@
 import os
+import signal
+import socket
+from multiprocessing import Process, Queue
+from queue import Empty
+from socket import gethostname
 from time import sleep as _sleep
 from time import time as _time
-from .logger import Logger
-from clients.NarrativeJobServiceClient import NarrativeJobService as NJS
+
+import requests
+
 from clients.authclient import KBaseAuth
+from clients.execution_engine2Client import execution_engine2 as EE2
+from .CatalogCache import CatalogCache
 from .MethodRunner import MethodRunner
 from .SpecialRunner import SpecialRunner
 from .callback_server import start_callback_server
-from socket import gethostname
-from multiprocessing import Process, Queue
+from .logger import Logger
 from .provenance import Provenance
-from queue import Empty
-import socket
-import signal
-from .CatalogCache import CatalogCache
-import requests
 
 
 class JobRunner(object):
@@ -24,16 +26,16 @@ class JobRunner(object):
     to support subjobs and provenenace calls.
     """
 
-    def __init__(self, config, njs_url, job_id, token, admin_token):
+    def __init__(self, config, ee2_url, job_id, token, admin_token):
         """
         inputs: config dictionary, NJS URL, Job id, Token, Admin Token
         """
-        self.njs = NJS(url=njs_url, timeout=60)
-        self.logger = Logger(njs_url, job_id, njs=self.njs)
+        self.ee2 = EE2(url=ee2_url, timeout=60)
+        self.logger = Logger(ee2_url, job_id, ee2=self.ee2)
         self.token = token
         self.client_group = os.environ.get("AWE_CLIENTGROUP", "None")
         self.admin_token = admin_token
-        self.config = self._init_config(config, job_id, njs_url)
+        self.config = self._init_config(config, job_id, ee2_url)
         self.hostname = gethostname()
         self.auth = KBaseAuth(config.get('auth-service-url'))
         self.job_id = job_id
@@ -48,13 +50,13 @@ class JobRunner(object):
         self.max_task = config.get('max_tasks', 20)
         signal.signal(signal.SIGINT, self.shutdown)
 
-    def _init_config(self, config, job_id, njs_url):
+    def _init_config(self, config, job_id, ee2_url):
         """
         Initialize config dictionary
         """
         config['hostname'] = gethostname()
         config['job_id'] = job_id
-        config['njs_url'] = njs_url
+        config['ee2_url'] = ee2_url
         config['cgroup'] = self._get_cgroup()
         token = self.token
         config['token'] = token
@@ -66,7 +68,7 @@ class JobRunner(object):
         returns True if the job is still okay to run.
         """
         try:
-            status = self.njs.check_job_canceled({'job_id': self.job_id})
+            status = self.ee2.check_job_canceled({'job_id': self.job_id})
         except Exception:
             self.logger.error("Warning: Job cancel check failed.  Continuing")
             return True
@@ -253,9 +255,9 @@ class JobRunner(object):
             self.logger.error("Job already run or canceled")
             raise OSError("Canceled job")
 
-        # Get job inputs from njs db
+        # Get job inputs from ee2 db
         try:
-            job_params = self.njs.get_job_params(self.job_id)
+            job_params = self.ee2.get_job_params(self.job_id)
         except Exception as e:
             self.logger.error("Failed to get job parameters. Exiting.")
             raise e
@@ -269,7 +271,8 @@ class JobRunner(object):
         self.logger.log(fstr.format(server_version))
 
         # Update job as started and log it
-        self.njs.update_job({'job_id': self.job_id, 'is_started': 1})
+
+        self.ee2.start_job({'job_id': self.job_id})
 
         self._init_workdir()
         config['workdir'] = self.workdir
@@ -290,7 +293,12 @@ class JobRunner(object):
 
         cbs.kill()
         self.logger.log('Job is done')
-        self.njs.finish_job(self.job_id, output)
+
+        if output.get('error'):
+            self.ee2.finish_job({'job_id': self.job_id, 'error': output.get('error')})
+        else:
+            self.ee2.finish_job({'job_id': self.job_id, 'job_output': output})
+
         # TODO: Attempt to clean up any running docker containers
         #       (if something crashed, for example)
         return output

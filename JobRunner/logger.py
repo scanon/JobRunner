@@ -1,18 +1,18 @@
 import sys
 import os
-from clients.NarrativeJobServiceClient import NarrativeJobService
+from clients.execution_engine2Client import execution_engine2
 
 
 # TODO: Add a buffer  we may need some flush thread too.
 
 class Logger(object):
 
-    def __init__(self, njs_url, job_id, njs=None):
-        self.njs_url = njs_url
-        if njs is None:
-            self.njs = NarrativeJobService(self.njs_url)
-        else:
-            self.njs = njs
+    def __init__(self, ee2_url, job_id, ee2=None):
+        self.ee2_url = ee2_url
+        self.ee2 = ee2
+        if self.ee2 is None:
+            self.ee2 = execution_engine2(self.ee2_url)
+
         self.job_id = job_id
         self.debug = os.environ.get('DEBUG_RUNNER', None)
         print("Logger initialized for %s" % (job_id))
@@ -24,14 +24,21 @@ class Logger(object):
                     sys.stderr.write(line+'\n')
                 else:
                     print(line['line'])
-        self.njs.add_job_logs(self.job_id, lines)
+        self.ee2.add_job_logs(self.job_id, lines)
 
-    def log(self, line):
+    def log(self, line, ts=None):
         if self.debug:  # pragma: no cover
             print(line, flush=True)
-        self.njs.add_job_logs(self.job_id, [{'line': line, 'is_error': 0}])
+        line = {'line': line, 'is_error': 0}
+        if ts:
+            line['ts'] = ts
 
-    def error(self, line):
+        self.ee2.add_job_logs(self.job_id, [line])
+
+    def error(self, line, ts=None):
         if self.debug:  # pragma: no cover
             print(line, flush=True)
-        self.njs.add_job_logs(self.job_id, [{'line': line, 'is_error': 1}])
+        line = {'line': line, 'is_error': 1}
+        if ts:
+            line['ts'] = ts
+        self.ee2.add_job_logs(self.job_id, [line])
