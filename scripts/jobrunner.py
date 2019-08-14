@@ -38,7 +38,7 @@ def main():
     # Input job id and njs_service URL
     if len(sys.argv) == 3:
         job_id = sys.argv[1]
-        njs_url = sys.argv[2]
+        ee2_url = sys.argv[2]
     else:
         print("Incorrect usage")
         sys.exit(1)
@@ -46,9 +46,9 @@ def main():
     config['workdir'] = os.environ.get("JOB_DIR", '/tmp/')
     if not os.path.exists(config['workdir']):
         os.makedirs(config['workdir'])
-    config['catalog-service-url'] = njs_url.replace('njs_wrapper', 'catalog')
+    config['catalog-service-url'] = ee2_url.replace('ee2', 'catalog')
     auth_ext = 'auth/api/legacy/KBase/Sessions/Login'
-    config['auth-service-url'] = njs_url.replace('njs_wrapper', auth_ext)
+    config['auth-service-url'] = ee2_url.replace('ee2', auth_ext)
     if 'USE_SHIFTER' in os.environ:
         config['runtime'] = 'shifter'
 
@@ -61,7 +61,7 @@ def main():
         os.makedirs(config['workdir'])
 
     try:
-        jr = JobRunner(config, njs_url, job_id, token, at)
+        jr = JobRunner(config, ee2_url, job_id, token, at)
         jr.run()
     except Exception as e:
         print("An unhandled error was encountered")
