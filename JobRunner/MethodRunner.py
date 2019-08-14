@@ -4,7 +4,8 @@ import os
 import json
 from configparser import ConfigParser
 from datetime import datetime, timezone
-
+import logging
+logging.basicConfig(level=logging.INFO)
 # Write out config file with all kbase endpoints / secure params
 
 
@@ -41,6 +42,9 @@ class MethodRunner:
         # Create all the directories
         # if not os.path.exists(self.basedir):
         #     os.mkdir(self.basedir)
+        logging.info("Config is")
+        logging.info(config)
+
         if not os.path.exists(self.job_dir):
             os.mkdir(self.job_dir)
         self.subjobdir = os.path.join(self.workdir, 'subjobs')
@@ -50,14 +54,16 @@ class MethodRunner:
         conf_prop = ConfigParser()
 
         conf_prop['global'] = {
-          'kbase_endpoint': config['kbase.endpoint'],
-          'workspace_url': config['workspace.srv.url'],
-          'shock_url': config['shock.url'],
-          'handle_url': config['handle.url'],
+          'kbase_endpoint': config['kbase-endpoint'],
+          'workspace_url': config['workspace-url'],
+          'external_url' : config['external-url'],
+          'shock_url': config['shock-url'],
+          'handle_url': config['handle-url'],
           'auth_service_url': config['auth-service-url'],
+          'auth_service_url-v2': config['auth-service-url-v2'],
           'auth_service_url_allow_insecure':
           config['auth-service-url-allow-insecure'],
-          'scratch': '/kb/module/work/tmp'
+          'scratch': config['scratch']
            }
 
         with open(job_dir + '/config.properties', 'w') as configfile:

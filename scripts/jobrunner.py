@@ -3,7 +3,8 @@
 import sys
 import os
 from JobRunner.JobRunner import JobRunner
-
+import logging
+logging.basicConfig(level=logging.INFO)
 _TOKEN_ENV = "KB_AUTH_TOKEN"
 _ADMIN_TOKEN_ENV = "KB_ADMIN_AUTH_TOKEN"
 
@@ -61,11 +62,13 @@ def main():
         os.makedirs(config['workdir'])
 
     try:
+        logging.info("About to create job runner")
         jr = JobRunner(config, ee2_url, job_id, token, at)
+        logging.info("About to run job")
         jr.run()
     except Exception as e:
-        print("An unhandled error was encountered")
-        print(e)
+        logging.error("An unhandled error was encountered")
+        logging.error(e)
         sys.exit(2)
 
 if __name__ == '__main__':

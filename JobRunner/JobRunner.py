@@ -1,3 +1,4 @@
+import logging
 import os
 import signal
 import socket
@@ -18,6 +19,8 @@ from .callback_server import start_callback_server
 from .logger import Logger
 from .provenance import Provenance
 
+logging.basicConfig(level=logging.INFO)
+
 
 class JobRunner(object):
     """
@@ -30,6 +33,7 @@ class JobRunner(object):
         """
         inputs: config dictionary, NJS URL, Job id, Token, Admin Token
         """
+
         self.ee2 = EE2(url=ee2_url, timeout=60)
         self.logger = Logger(ee2_url, job_id, ee2=self.ee2)
         self.token = token
@@ -95,20 +99,20 @@ class JobRunner(object):
                         return items[2]
         return "Unknown"
 
-    def _submit_special(self, config, job_id, data):
+    def _submit_special(self, config, job_id, job_params):
         """
         Handler for methods such as CWL, WDL and HPC
         """
-        (module, method) = data['method'].split('.')
+        (module, method) = job_params['method'].split('.')
         self.logger.log("Submit %s as a %s:%s job" % (job_id, module, method))
 
-        self.sr.run(config, data, job_id,
+        self.sr.run(config, job_params, job_id,
                     callback=self.callback_url,
                     fin_q=[self.jr_queue])
 
-    def _submit(self, config, job_id, data, subjob=True):
-        (module, method) = data['method'].split('.')
-        version = data.get('service_ver')
+    def _submit(self, config, job_id, job_params, subjob=True):
+        (module, method) = job_params['method'].split('.')
+        version = job_params.get('service_ver')
         module_info = self.cc.get_module_info(module, version)
 
         git_url = module_info['git_url']
@@ -125,7 +129,7 @@ class JobRunner(object):
 
         vm = self.cc.get_volume_mounts(module, method, self.client_group)
         config['volume_mounts'] = vm
-        action = self.mr.run(config, module_info, data, job_id,
+        action = self.mr.run(config, module_info, job_params, job_id,
                              callback=self.callback_url, subjob=subjob,
                              fin_q=self.jr_queue)
         self._update_prov(action)
@@ -158,9 +162,9 @@ class JobRunner(object):
                         self._cancel()
                         return {'error': 'Canceled or unexpected error'}
                     if req[2].get('method').startswith('special.'):
-                        self._submit_special(config, req[1], req[2])
+                        self._submit_special(config=config, job_id=req[1], job_params=req[2])
                     else:
-                        self._submit(config, req[1], req[2])
+                        self._submit(config=config, job_id=req[1], job_params=req[2])
                     ct += 1
                 elif req[0] == 'finished_special':
                     job_id = req[1]
@@ -244,50 +248,60 @@ class JobRunner(object):
         will not return until the job finishes or encounters and error.
         This method also handles starting up the callback server.
         """
-        self.logger.log('Running on {} ({}) in {}'.format(self.hostname,
-                                                          self.ip,
-                                                          self.workdir))
-        self.logger.log('Client group: {}'.format(self.client_group))
+        running_msg = ('Running on {} ({}) in {}'.format(self.hostname,
+                                                         self.ip,
+                                                         self.workdir))
+        self.logger.log(running_msg)
+        logging.info(running_msg)
+
+        cg_msg = 'Client group: {}'.format(self.client_group)
+        self.logger.log(cg_msg)
+        logging.info(cg_msg)
 
         # Check to see if the job was run before or canceled already.
         # If so, log it
+        logging.info('About to check job status')
         if not self._check_job_status():
             self.logger.error("Job already run or canceled")
+            logging.error("Job already run or canceled")
             raise OSError("Canceled job")
 
         # Get job inputs from ee2 db
+        # Config is not stored in job anymore, its a server wide config
+        # I don't think this matters for reproducibility
+
+        logging.info('About to get job params and config')
         try:
             job_params = self.ee2.get_job_params(self.job_id)
+            config = self.ee2.list_config()
         except Exception as e:
-            self.logger.error("Failed to get job parameters. Exiting.")
+            self.logger.error("Failed to get job and config parameters. Exiting.")
             raise e
 
-        params = job_params[0]
-        config = job_params[1]
         config['job_id'] = self.job_id
-
-        server_version = config['ee.server.version']
-        fstr = 'Server version of Execution Engine: {}'
-        self.logger.log(fstr.format(server_version))
+        self.logger.log(f"Server version of Execution Engine: {config.get('ee.server.version')}")
 
         # Update job as started and log it
-
+        logging.info('About to start job')
         self.ee2.start_job({'job_id': self.job_id})
 
+        logging.info('Initing work dir')
         self._init_workdir()
         config['workdir'] = self.workdir
         config['user'] = self._validate_token()
 
-        self.prov = Provenance(params)
+        logging.info('Setting provenance')
+        self.prov = Provenance(job_params)
 
         # Start the callback server
+        logging.info('Starting callback server')
         cb_args = [self.ip, self.port, self.jr_queue, self.callback_queue,
                    self.token]
         cbs = Process(target=start_callback_server, args=cb_args)
         cbs.start()
 
         # Submit the main job
-        self._submit(config, self.job_id, params, subjob=False)
+        self._submit(config=config, job_id=self.job_id, job_params=job_params, subjob=False)
 
         output = self._watch(config)
 
