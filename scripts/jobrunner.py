@@ -74,6 +74,7 @@ def main():
     except Exception as e:
         logging.error("An unhandled error was encountered")
         logging.error(e)
+
         sys.exit(2)
 
 

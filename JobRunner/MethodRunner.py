@@ -238,7 +238,12 @@ class MethodRunner:
             return result
 
         if 'error' in output:
-            self.logger.error("Error in job")
+            error = output.get('error')
+            error_msg = error.get('message')
+            error_code = error.get('code')
+            error_name = error.get('name')
+            error_error = error.get('error')
+            self.logger.error(f"Error in job msg:{error_msg} code:{error_code} name:{error_name} error:{error_error}")
 
         return output
 
