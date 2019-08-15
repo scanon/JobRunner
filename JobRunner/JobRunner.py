@@ -234,7 +234,8 @@ class JobRunner(object):
 
     def _get_token_lifetime(self, config):
         try:
-            url = config.get('auth.service.url.v2')
+            url = config.get('auth-service-url-v2')
+            logging.info(f"About to get token lifetime from {url} for user token")
             header = {'Authorization': self.config['token']}
             resp = requests.get(url, headers=header).json()
             return resp['expires']
@@ -309,7 +310,7 @@ class JobRunner(object):
         self.logger.log('Job is done')
 
         if output.get('error'):
-            self.ee2.finish_job({'job_id': self.job_id, 'error_message': output.get('error')})
+            self.ee2.finish_job({'job_id': self.job_id, 'error_message': str(output.get('error'))})
         else:
             self.ee2.finish_job({'job_id': self.job_id, 'job_output': output})
 

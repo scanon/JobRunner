@@ -29,12 +29,13 @@ class MethodRunner:
         # self.basedir = os.path.join(self.workdir, 'job_%s' % (self.job_id))
         self.refbase = config.get('refdata_dir', '/tmp/ref')
         self.job_dir = os.path.join(self.workdir, 'workdir')
+        logging.info(f"Job dir is {self.job_dir}")
         runtime = config.get('runtime', 'docker')
         self.containers = []
-        if runtime == 'docker':
-            self.runner = DockerRunner(logger=logger)
-        elif runtime == 'shifter':
+        if runtime == 'shifter':
             self.runner = ShifterRunner(logger=logger)
+        elif runtime == 'docker':
+            self.runner = DockerRunner(logger=logger)
         else:
             raise OSError("Unknown runtime")
 
@@ -132,7 +133,10 @@ class MethodRunner:
         if subjob:
             fstr = 'Subjob method: {} JobID: {}'
             self.logger.log(fstr.format(params['method'], job_id))
-        self.logger.log('Running docker container for image: {}'.format(image))
+
+        run_docker_msg = f'Running docker container for image: {image}'
+        logging.info(run_docker_msg)
+        self.logger.log(run_docker_msg)
 
         # Initialize workdir
         self._init_workdir(config, job_dir, params)
