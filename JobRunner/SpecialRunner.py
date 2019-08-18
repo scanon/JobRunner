@@ -24,7 +24,7 @@ class SpecialRunner:
         self.shareddir = os.path.join(self.workdir, 'workdir/tmp')
         self.containers = []
         self.threads = []
-        self.allowed_types = ['slurm']
+        self.allowed_types = ['slurm', 'wdl']
 
     _BATCH_POLL = 10
     _FILE_POLL = 10
@@ -46,7 +46,11 @@ class SpecialRunner:
         if method not in self.allowed_types:
             raise ValueError("Invalid special method type")
 
-        return self._batch_submit(method, config, data, job_id, fin_q)
+        if method == 'slurm':
+            return self._batch_submit(method, config, data, job_id, fin_q)
+        elif method == 'wdl':
+            return self._wdl_run(method, config, data, job_id, fin_q)
+
 
     def _check_batch_job(self, check, slurm_jobid):
         cmd = [check, slurm_jobid]
@@ -153,6 +157,61 @@ class SpecialRunner:
                                                      slurm_jobid,
                                                      outfile, errfile,
                                                      fin_q])
+        self.threads.append(out)
+        out.start()
+        self.containers.append(proc)
+        return proc
+
+    def _readio(self, p, job_id, queues):
+        cont = True
+        last = False
+        while cont:
+            rlist = [p.stdout, p.stderr]
+            x = select(rlist, [], [], 1)[0]
+            for f in x:
+                if f == p.stderr:
+                    error = True
+                else:
+                    error = False
+                line = f.readline().decode('utf-8')
+                if len(line) > 0:
+                    self.logger.log_lines([{'line': line, 'error': error}])
+            if last:
+                cont = False
+            if p.poll() is not None:
+                last = True
+        resp = {
+            'exit_status': p.returncode,
+            'output_file': None,
+            'error_file': None
+        }
+        result = {'result': [resp]}
+        for q in queues:
+            q.put(['finished_special', job_id, result])
+
+    def _wdl_run(self, stype, config, data, job_id, queues):
+        """
+        This subbmits the job to the batch system and starts
+        a thread to monitor the progress.
+
+        """
+        params = data['params'][0]
+        submit = '%s_submit' % (stype)
+        if 'workflow' not in params:
+            raise ValueError("Missing workflow script")
+        if 'inputs' not in params:
+            raise ValueError("Missing inputs")
+        os.chdir(self.shareddir)
+        wdl = params['workflow']
+        if not os.path.exists(wdl):
+            raise OSError("Workflow script not found at %s" % (wdl))
+
+        inputs = params['inputs']
+        if not os.path.exists(inputs):
+            raise OSError("Inputs file not found at %s" % (inputs))
+        cmd = ['wdl_run', inputs, wdl]
+        proc = Popen(cmd, bufsize=0, stdout=PIPE, stderr=PIPE)
+        out = Thread(target=self._readio, args=[proc, job_id, queues])
         self.threads.append(out)
         out.start()
         self.containers.append(proc)

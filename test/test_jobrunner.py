@@ -357,3 +357,28 @@ class JobRunnerTest(unittest.TestCase):
         jr._get_token_lifetime = MagicMock(return_value=self.future)
         out = jr.run()
         self.assertNotIn('error', out)
+
+    @attr('offline')
+    @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
+    @patch('JobRunner.JobRunner.NJS', autospec=True)
+    def test_run_wdl(self, mock_njs, mock_auth):
+        self._cleanup(self.jobid)
+        params = deepcopy(NJS_JOB_PARAMS)
+        params[0]['method'] = 'RunTester.run_RunTester'
+        params[0]['params'] = [{'do_wdl': 1}]
+        params[1]['auth-service-url'] = self.config['auth-service-url']
+        params[1]['auth.service.url.v2'] = self.config['auth2-url']
+        jr = JobRunner(self.config, self.njs_url, self.jobid, self.token,
+                       self.admin_token)
+        rv = deepcopy(CATALOG_GET_MODULE_VERSION)
+        rv['docker_img_name'] = 'test/runtester:latest'
+        jr.cc.catalog.get_module_version = MagicMock(return_value=rv)
+        jr.cc.catalog.list_volume_mounts = MagicMock(return_value=[])
+        jr.cc.catalog.get_secure_config_params = MagicMock(return_value=None)
+        jr.logger.njs.add_job_logs = MagicMock(return_value=rv)
+        jr.njs.get_job_params.return_value = params
+        jr.njs.check_job_canceled.return_value = {'finished': False}
+        jr.auth.get_user.return_value = "bogus"
+        jr._get_token_lifetime = MagicMock(return_value=self.future)
+        out = jr.run()
+        self.assertNotIn('error', out)
