@@ -109,7 +109,7 @@ class SpecialRunnerTest(unittest.TestCase):
         self.sr._FILE_POLL = 0.1
         self.sr._BATCH_POLL = 0.3
         self.sr.run(config, data, job_id, fin_q=[q])
-        result = q.get(timeout=40)
+        result = q.get(timeout=60)
         self.assertEquals(result[0], 'finished_special')
         self.assertEquals(len(result), 3)
         output = self.logger.all
