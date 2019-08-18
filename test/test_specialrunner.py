@@ -8,6 +8,9 @@ from queue import Queue
 
 class MockLogger(object):
     def __init__(self):
+        self.reset()
+
+    def reset(self):
         self.lines = []
         self.errors = []
         self.all = []
@@ -61,6 +64,7 @@ class SpecialRunnerTest(unittest.TestCase):
     """
 
     def test_run(self):
+        self.logger.reset()
         config = {}
         data = {
             'method': 'special.slurm',
@@ -84,6 +88,7 @@ class SpecialRunnerTest(unittest.TestCase):
         self.assertIn(['line3\n', 0], self.logger.all)
 
     def test_run_wdl(self):
+        self.logger.reset()
         config = {}
         data = {
             'method': 'special.wdl',
@@ -100,7 +105,7 @@ class SpecialRunnerTest(unittest.TestCase):
         with open('/tmp/workdir/tmp/inputs.json', 'w') as f:
             f.write(self._wdl_inputs)
     
-            q = Queue()
+        q = Queue()
         self.sr._FILE_POLL = 0.1
         self.sr._BATCH_POLL = 0.3
         self.sr.run(config, data, job_id, fin_q=[q])
