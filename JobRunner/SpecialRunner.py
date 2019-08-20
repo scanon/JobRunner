@@ -51,7 +51,6 @@ class SpecialRunner:
         elif method == 'wdl':
             return self._wdl_run(method, config, data, job_id, fin_q)
 
-
     def _check_batch_job(self, check, slurm_jobid):
         cmd = [check, slurm_jobid]
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -63,14 +62,12 @@ class SpecialRunner:
         self.logger.log("Watching Slurm Job ID %s" % (slurm_jobid))
         check = '%s_checkjob' % (stype)
         cont = True
-        started = False
         retry = 0
         # Wait for job to start out output file to appear
         while cont:
             state = self._check_batch_job(check, slurm_jobid)
             if state == 'Running':
                 self.logger.log("Running")
-                started = True
             elif state == "Pending":
                 self.logger.log("Pending")
             elif state == "Finished":
@@ -170,12 +167,14 @@ class SpecialRunner:
             x = select(rlist, [], [], 1)[0]
             for f in x:
                 if f == p.stderr:
-                    error = True
+                    error = 1
                 else:
-                    error = False
-                line = f.readline().decode('utf-8')
-                if len(line) > 0:
-                    self.logger.log_lines([{'line': line, 'error': error}])
+                    error = 0
+                lines = []
+                for line in f.read().decode('utf-8').split("\n"):
+                    lines.append({'line': line, 'is_error': error})
+                if len(lines) > 0:
+                    self.logger.log_lines(lines)
             if last:
                 cont = False
             if p.poll() is not None:
@@ -186,6 +185,7 @@ class SpecialRunner:
             'error_file': None
         }
         result = {'result': [resp]}
+        p.wait()
         for q in queues:
             q.put(['finished_special', job_id, result])
 
@@ -196,7 +196,6 @@ class SpecialRunner:
 
         """
         params = data['params'][0]
-        submit = '%s_submit' % (stype)
         if 'workflow' not in params:
             raise ValueError("Missing workflow script")
         if 'inputs' not in params:

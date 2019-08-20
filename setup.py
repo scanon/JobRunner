@@ -19,6 +19,7 @@ setup_args = dict(
     packages=['JobRunner', 'clients'],
     scripts=['scripts/jobrunner.py',
              'scripts/slurm_submit',
+             'scripts/wdl_run',
              'scripts/slurm_checkjob'],
     version=version_ns['__version__'],
     description="""KBase Job Runner used to run KBase

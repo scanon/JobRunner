@@ -14,8 +14,10 @@ class MockLogger(object):
         self.lines = []
         self.errors = []
         self.all = []
+        self.ct = 0
 
     def log_lines(self, lines):
+        self.ct += 1
         self.all.extend(lines)
 
     def log(self, line):
@@ -51,7 +53,7 @@ class SpecialRunnerTest(unittest.TestCase):
         #    docker: 'ubuntu:latest'
         #}
     }
-    
+
     workflow hello {
         call hello_world
     }
@@ -104,7 +106,6 @@ class SpecialRunnerTest(unittest.TestCase):
             f.write(self._wdl)
         with open('/tmp/workdir/tmp/inputs.json', 'w') as f:
             f.write(self._wdl_inputs)
-    
         q = Queue()
         self.sr._FILE_POLL = 0.1
         self.sr._BATCH_POLL = 0.3
@@ -118,3 +119,4 @@ class SpecialRunnerTest(unittest.TestCase):
             if line['line'].find("workflow finished with status 'Succeeded'") > 0:
                 count += 1
         self.assertTrue(count)
+        self.assertLess(self.logger.ct, 10)
