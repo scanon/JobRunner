@@ -1,11 +1,8 @@
 # -*- coding: utf-8 -*-
-import os
 import unittest
 
 from JobRunner.ShifterRunner import ShifterRunner
-from nose.plugins.attrib import attr
 from queue import Queue
-from time import sleep
 
 
 class MockLogger(object):

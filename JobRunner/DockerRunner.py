@@ -27,7 +27,7 @@ class DockerRunner:
         """
 
         lines_by_time = dict()
-        ierr =0
+        ierr = 0
         for stream in [sout, serr]:
             if len(sout) == 0:
                 continue
