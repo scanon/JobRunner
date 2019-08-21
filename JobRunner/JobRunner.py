@@ -226,9 +226,9 @@ class JobRunner(object):
         # Validate token and get user name
         try:
             user = self.auth.get_user(self.config['token'])
-        except Exception:
+        except Exception as e:
             self.logger.error("Token validation failed")
-            raise Exception()
+            raise Exception(e)
 
         return user
 
@@ -274,10 +274,19 @@ class JobRunner(object):
         logging.info('About to get job params and config')
         try:
             job_params = self.ee2.get_job_params(self.job_id)
+
+        except Exception as e:
+            self.logger.error("Failed to get job parameters. Exiting.")
+            raise e
+
+        try:
             config = self.ee2.list_config()
         except Exception as e:
-            self.logger.error("Failed to get job and config parameters. Exiting.")
+            self.logger.error("Failed to config . Exiting.")
             raise e
+
+
+
 
         config['job_id'] = self.job_id
         self.logger.log(f"Server version of Execution Engine: {config.get('ee.server.version')}")

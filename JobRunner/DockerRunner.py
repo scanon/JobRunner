@@ -1,8 +1,11 @@
-import docker
+import atexit
 from threading import Thread
-from time import time as _time
 from time import sleep as _sleep
+from time import time as _time
 
+import docker
+from docker.models.containers import ContainerCollection, Container
+from typing import List
 
 class DockerRunner:
     """
@@ -10,15 +13,28 @@ class DockerRunner:
 
     """
 
+    def _cleanup_docker_containers(self):
+        """
+
+        :return:
+        """
+        print("At exit called, killing docker containers")
+        for item in self.containers:
+            try:
+                item.kill()
+            except Exception as e:
+                print("Couldn't kill container", item, e)
+
     def __init__(self, logger=None):
         """
         Inputs: config dictionary, Job ID, and optional logger
         """
         self.docker = docker.from_env()
         self.logger = logger
-        self.containers = []
+        self.containers = []  # type:List[Container]
         self.threads = []
         self.log_interval = 1
+        atexit.register(self._cleanup_docker_containers)
 
     def _sort_lines_by_time(self, sout, serr):
         """
@@ -101,10 +117,8 @@ class DockerRunner:
         return id
 
     def run(self, job_id, image, env, vols, labels, queues):
-        print("Running container with env")
-        print(env)
-        print("Volumes")
-        print(vols)
+
+
         c = self.docker.containers.run(image, 'async',
                                        environment=env,
                                        detach=True,

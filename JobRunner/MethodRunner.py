@@ -43,8 +43,6 @@ class MethodRunner:
         # Create all the directories
         # if not os.path.exists(self.basedir):
         #     os.mkdir(self.basedir)
-        logging.info("Config is")
-        logging.info(config)
 
         if not os.path.exists(self.job_dir):
             os.mkdir(self.job_dir)
