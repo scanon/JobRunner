@@ -172,7 +172,6 @@ class JobRunnerTest(unittest.TestCase):
         """
         This test is expected to run for 30 seconds?
 
-        :return:
         """
         self._cleanup(self.jobid)
         params = deepcopy(NJS_JOB_PARAMS)
@@ -363,9 +362,7 @@ class JobRunnerTest(unittest.TestCase):
     def test_run_slurm(self, mock_ee2, mock_auth):
         """
         This test is expected to run for 40-60 seconds?
-        :param mock_ee2:
-        :param mock_auth:
-        :return:
+
         """
         self._cleanup(self.jobid)
         params = deepcopy(NJS_JOB_PARAMS)
