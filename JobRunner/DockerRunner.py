@@ -2,10 +2,11 @@ import atexit
 from threading import Thread
 from time import sleep as _sleep
 from time import time as _time
+from typing import List
 
 import docker
-from docker.models.containers import ContainerCollection, Container
-from typing import List
+from docker.models.containers import Container
+
 
 class DockerRunner:
     """
@@ -15,15 +16,11 @@ class DockerRunner:
 
     def _cleanup_docker_containers(self):
         """
-
-        :return:
+        At exit, attempt to clean up all docker containers.
+        Suppress errors in case they don't exist
         """
-        print("At exit called, killing docker containers")
-        for item in self.containers:
-            try:
-                item.kill()
-            except Exception as e:
-                print("Couldn't kill container", item, e)
+        for container in self.containers:
+            self.remove(container)
 
     def __init__(self, logger=None):
         """
@@ -31,8 +28,8 @@ class DockerRunner:
         """
         self.docker = docker.from_env()
         self.logger = logger
-        self.containers = []  # type:List[Container]
-        self.threads = []
+        self.containers = []  # type: List[Container]
+        self.threads = []  # type: List[Thread]
         self.log_interval = 1
         atexit.register(self._cleanup_docker_containers)
 
@@ -41,7 +38,6 @@ class DockerRunner:
         This is an internal function to sort and interlace output for NJS.
         This is not fully implemented yet and sould be rethought.
         """
-
         lines_by_time = dict()
         if len(sout) > 0:
             ierr = 0
@@ -100,24 +96,44 @@ class DockerRunner:
                 self.logger.error("Unexpected failure")
             else:
                 print("Exception in docker logging for %s" % (c.id))
-                raise(e)
+                raise (e)
 
     def get_image(self, image):
+        """
+        Retrieve an image by ID, and pull it if we don't already have it locally on the current
+        worker node.
+        :param image: The image name to pull from from dockerhub
+        :return: ID of the pulled image
+        :param image:
+        :return:
+        """
+
         # Pull the image from the hub if we don't have it
         pulled = False
         for im in self.docker.images.list():
             if image in im.tags:
-                id = im.id
+                image_id = im.id
                 pulled = True
                 break
 
         if not pulled:
             self.logger.log("Pulling image {}".format(image))
-            id = self.docker.images.pull(image).id
-        return id
+            image_id = self.docker.images.pull(image).id
+            
+        return image_id
 
     def run(self, job_id, image, env, vols, labels, queues):
-
+        """
+        Start a docker container for the main job or subjobs
+        and append it to the list of docker containers
+        :param job_id: The ExecutionEngine2 Job ID
+        :param image: The docker image name
+        :param env: Environment for the docker container
+        :param vols: Volumes for the docker container
+        :param labels: Labels for the docker container
+        :param queues: If there is a fin_q then whether or not to run it async
+        :return:
+        """
 
         c = self.docker.containers.run(image, 'async',
                                        environment=env,
@@ -132,6 +148,11 @@ class DockerRunner:
         return c
 
     def remove(self, c):
+        """
+        Wrapper to kill and remove a docker container.
+        :param c: A reference to docker container object
+        :return:
+        """
         try:
             c.kill()
         except Exception:
