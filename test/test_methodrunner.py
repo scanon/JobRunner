@@ -55,10 +55,17 @@ class MethodRunnerTest(unittest.TestCase):
         base = 'https://ci.kbase.us/services/'
         cls.conf = {
             'kbase.endpoint': base,
+            'kbase-endpoint': base,
+            'external-url' : base,
             'workspace.srv.url': base,
+            'workspace-srv-url': base,
+            'workspace-url': base,
             'shock.url': base,
+            'shock-url': base,
             'handle.url': base,
+            'handle-url': base,
             'auth-service-url': base,
+            'auth-service-url-v2': base,
             'auth-service-url-allow-insecure': True,
             'scratch': '/kb/module/work/tmp',
             'user': 'mrbogus'

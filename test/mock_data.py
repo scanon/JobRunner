@@ -55,7 +55,7 @@ NJS_JOB_PARAMS = [{
     u'auth-service-url-allow-insecure': u'false',
     u'auth.service.url.v2': _BASE + u'auth/api/V2/token',
     u'auth-service-url-v2': _BASE + u'auth/api/V2/token',
-    u'scratch': _BASE + u'/kb/module/workdir',
+    u'scratch':  u'/kb/module/work/tmp',
     u'awe.client.callback.networks': u'docker0,eth0',
     u'awe.client.docker.uri': u'unix:///var/run/docker.sock',
     u'catalog.srv.url': _BASE + u'catalog',
