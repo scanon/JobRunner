@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 
-import sys
+import logging
 import os
+import sys
+
 from JobRunner.JobRunner import JobRunner
 
+logging.basicConfig(level=logging.INFO)
 _TOKEN_ENV = "KB_AUTH_TOKEN"
 _ADMIN_TOKEN_ENV = "KB_ADMIN_AUTH_TOKEN"
 
@@ -38,17 +41,22 @@ def main():
     # Input job id and njs_service URL
     if len(sys.argv) == 3:
         job_id = sys.argv[1]
-        njs_url = sys.argv[2]
+        ee2_url = sys.argv[2]
     else:
         print("Incorrect usage")
         sys.exit(1)
-    config = {}
-    config['workdir'] = os.environ.get("JOB_DIR", '/tmp/')
+
+    config = dict()
+    config['workdir'] = os.getcwd()
     if not os.path.exists(config['workdir']):
         os.makedirs(config['workdir'])
-    config['catalog-service-url'] = njs_url.replace('njs_wrapper', 'catalog')
+        logging.info(f"Creating work directory at {config['workdir']}")
+
+    config['catalog-service-url'] = ee2_url.replace('ee2', 'catalog')
     auth_ext = 'auth/api/legacy/KBase/Sessions/Login'
-    config['auth-service-url'] = njs_url.replace('njs_wrapper', auth_ext)
+    config['auth-service-url'] = ee2_url.replace('ee2', auth_ext)
+
+    #WARNING: Condor job environment may not inherit from system ENV
     if 'USE_SHIFTER' in os.environ:
         config['runtime'] = 'shifter'
 
@@ -57,16 +65,18 @@ def main():
 
     token = _get_token()
     at = _get_admin_token()
-    if not os.path.exists(config['workdir']):
-        os.makedirs(config['workdir'])
 
     try:
-        jr = JobRunner(config, njs_url, job_id, token, at)
+        logging.info("About to create job runner")
+        jr = JobRunner(config, ee2_url, job_id, token, at)
+        logging.info("About to run job")
         jr.run()
     except Exception as e:
-        print("An unhandled error was encountered")
-        print(e)
+        logging.error("An unhandled error was encountered")
+        logging.error(e)
+
         sys.exit(2)
+
 
 if __name__ == '__main__':
     main()

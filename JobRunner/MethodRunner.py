@@ -4,7 +4,8 @@ import os
 import json
 from configparser import ConfigParser
 from datetime import datetime, timezone
-
+import logging
+logging.basicConfig(level=logging.INFO)
 # Write out config file with all kbase endpoints / secure params
 
 
@@ -28,12 +29,13 @@ class MethodRunner:
         # self.basedir = os.path.join(self.workdir, 'job_%s' % (self.job_id))
         self.refbase = config.get('refdata_dir', '/tmp/ref')
         self.job_dir = os.path.join(self.workdir, 'workdir')
+        logging.info(f"Job dir is {self.job_dir}")
         runtime = config.get('runtime', 'docker')
         self.containers = []
-        if runtime == 'docker':
-            self.runner = DockerRunner(logger=logger)
-        elif runtime == 'shifter':
+        if runtime == 'shifter':
             self.runner = ShifterRunner(logger=logger)
+        elif runtime == 'docker':
+            self.runner = DockerRunner(logger=logger)
         else:
             raise OSError("Unknown runtime")
 
@@ -41,6 +43,9 @@ class MethodRunner:
         # Create all the directories
         # if not os.path.exists(self.basedir):
         #     os.mkdir(self.basedir)
+        logging.info("Config is")
+        logging.info(config)
+
         if not os.path.exists(self.job_dir):
             os.mkdir(self.job_dir)
         self.subjobdir = os.path.join(self.workdir, 'subjobs')
@@ -50,14 +55,16 @@ class MethodRunner:
         conf_prop = ConfigParser()
 
         conf_prop['global'] = {
-          'kbase_endpoint': config['kbase.endpoint'],
-          'workspace_url': config['workspace.srv.url'],
-          'shock_url': config['shock.url'],
-          'handle_url': config['handle.url'],
+          'kbase_endpoint': config['kbase-endpoint'],
+          'workspace_url': config['workspace-url'],
+          'external_url' : config['external-url'],
+          'shock_url': config['shock-url'],
+          'handle_url': config['handle-url'],
           'auth_service_url': config['auth-service-url'],
+          'auth_service_url-v2': config['auth-service-url-v2'],
           'auth_service_url_allow_insecure':
           config['auth-service-url-allow-insecure'],
-          'scratch': '/kb/module/work/tmp'
+          'scratch': config['scratch']
            }
 
         with open(job_dir + '/config.properties', 'w') as configfile:
@@ -126,7 +133,10 @@ class MethodRunner:
         if subjob:
             fstr = 'Subjob method: {} JobID: {}'
             self.logger.log(fstr.format(params['method'], job_id))
-        self.logger.log('Running docker container for image: {}'.format(image))
+
+        run_docker_msg = f'Running docker container for image: {image}'
+        logging.info(run_docker_msg)
+        self.logger.log(run_docker_msg)
 
         # Initialize workdir
         self._init_workdir(config, job_dir, params)
@@ -229,7 +239,12 @@ class MethodRunner:
             return result
 
         if 'error' in output:
-            self.logger.error("Error in job")
+            error = output.get('error')
+            error_msg = error.get('message')
+            error_code = error.get('code')
+            error_name = error.get('name')
+            error_error = error.get('error')
+            self.logger.error(f"Error in job msg:{error_msg} code:{error_code} name:{error_name} error:{error_error}")
 
         return output
 

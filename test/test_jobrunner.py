@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 import os
 import unittest
+from copy import deepcopy
+from time import time as _time
 from unittest.mock import patch
+
 from mock import MagicMock
+from nose.plugins.attrib import attr
+from requests import ConnectionError
 
 from JobRunner.JobRunner import JobRunner
-from nose.plugins.attrib import attr
-from copy import deepcopy
 from .mock_data import CATALOG_GET_MODULE_VERSION, NJS_JOB_PARAMS, \
-        CATALOG_LIST_VOLUME_MOUNTS, AUTH_V2_TOKEN
-from requests import ConnectionError
-from time import time as _time
+    CATALOG_LIST_VOLUME_MOUNTS, AUTH_V2_TOKEN
 
 
 class MockLogger(object):
