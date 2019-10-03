@@ -26,12 +26,12 @@ class ShifterRunner:
             x = select(rlist, [], [], 1)[0]
             for f in x:
                 if f == p.stderr:
-                    error = True
+                    error = 1
                 else:
-                    error = False
+                    error = 0
                 line = f.readline().decode('utf-8')
                 if len(line) > 0:
-                    self.logger.log_lines([{'line': line, 'error': error}])
+                    self.logger.log_lines([{'line': line, 'is_error': error}])
             if last:
                 cont = False
             if p.poll() is not None:
