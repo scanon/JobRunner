@@ -57,7 +57,7 @@ class MethodRunner:
         conf_prop['global'] = {
           'kbase_endpoint': config['kbase-endpoint'],
           'workspace_url': config['workspace-url'],
-          'external_url' : config['external-url'],
+          'external_url': config['external-url'],
           'shock_url': config['shock-url'],
           'handle_url': config['handle-url'],
           'auth_service_url': config['auth-service-url'],

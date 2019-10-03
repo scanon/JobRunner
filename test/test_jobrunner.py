@@ -82,6 +82,10 @@ class JobRunnerTest(unittest.TestCase):
     @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
     @patch('JobRunner.JobRunner.EE2', autospec=True)
     def test_run_sub(self, mock_ee2, mock_auth):
+        """
+        This test is expected to run for 50-60 seconds?
+
+        """
         self._cleanup(self.jobid)
         params = deepcopy(EE2_JOB_PARAMS)
         params['method'] = 'RunTester.run_RunTester'
@@ -169,6 +173,10 @@ class JobRunnerTest(unittest.TestCase):
     @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
     @patch('JobRunner.JobRunner.EE2', autospec=True)
     def test_cancel(self, mock_ee2, mock_auth):
+        """
+        This test is expected to run for 30 seconds?
+
+        """
         self._cleanup(self.jobid)
         params = deepcopy(EE2_JOB_PARAMS)
         params['method'] = 'RunTester.run_RunTester'
@@ -190,6 +198,7 @@ class JobRunnerTest(unittest.TestCase):
         jr.auth.get_user.return_value = "bogus"
         out = jr.run()
         self.assertIsNotNone(out)
+        self.assertEqual({'error': 'Canceled or unexpected error'}, out)
         # Check that all containers are gone
 
     @attr('offline')
@@ -254,6 +263,7 @@ class JobRunnerTest(unittest.TestCase):
     @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
     def test_canceled_job(self, mock_ee2, mock_auth):
         self._cleanup(self.jobid)
+        params = deepcopy(EE2_JOB_PARAMS)
         mlog = MockLogger()
         os.environ['KB_AUTH_TOKEN'] = 'bogus'
         jr = JobRunner(self.config, self.ee2_url, self.jobid, self.token,
@@ -262,7 +272,7 @@ class JobRunnerTest(unittest.TestCase):
         jr.ee2.check_job_canceled.return_value = {'finished': True}
         with self.assertRaises(OSError):
             jr.run()
-        self.assertEquals(mlog.errors[0], 'Job already run or canceled')
+        self.assertEqual(mlog.errors[0], 'Job already run or canceled')
 
     @patch('JobRunner.JobRunner.EE2', autospec=True)
     @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
@@ -278,7 +288,7 @@ class JobRunnerTest(unittest.TestCase):
         jr.ee2.get_job_params.side_effect = ConnectionError()
         with self.assertRaises(ConnectionError):
             jr.run()
-        emsg = 'Failed to get job and config parameters. Exiting.'
+        emsg = 'Failed to get job parameters. Exiting.'
         self.assertEquals(mlog.errors[0], emsg)
 
     @attr('offline')
@@ -327,7 +337,7 @@ class JobRunnerTest(unittest.TestCase):
         jr._get_token_lifetime = MagicMock(return_value=_time())
         out = jr.run()
         self.assertIn('error', out)
-        self.assertEquals(out['error'], "Token has expired")
+        self.assertEqual(out['error'], "Token has expired")
 
     @patch('JobRunner.JobRunner.KBaseAuth', autospec=True)
     @patch('JobRunner.JobRunner.EE2', autospec=True)
