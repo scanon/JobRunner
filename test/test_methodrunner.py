@@ -7,7 +7,7 @@ from queue import Queue
 
 from JobRunner.MethodRunner import MethodRunner
 from JobRunner.logger import Logger
-from .mock_data import NJS_JOB_PARAMS, CATALOG_GET_MODULE_VERSION,\
+from .mock_data import EE2_JOB_PARAMS, CATALOG_GET_MODULE_VERSION,\
     CATALOG_GET_SECURE_CONFIG_PARAMS
 
 
@@ -54,11 +54,13 @@ class MethodRunnerTest(unittest.TestCase):
         cls.mr = MethodRunner(cls.cfg, '1234', logger=cls.logger)
         base = 'https://ci.kbase.us/services/'
         cls.conf = {
-            'kbase.endpoint': base,
-            'workspace.srv.url': base,
-            'shock.url': base,
-            'handle.url': base,
+            'kbase-endpoint': base,
+            'workspace-url': base,
+            'shock-url': base,
+            'handle-url': base,
             'auth-service-url': base,
+            'auth-service-url-v2': base,
+            'external-url': base,
             'auth-service-url-allow-insecure': True,
             'scratch': '/kb/module/work/tmp',
             'user': 'mrbogus'
@@ -73,7 +75,7 @@ class MethodRunnerTest(unittest.TestCase):
         except:
             pass
         q = Queue()
-        action = mr.run(self.conf, module_info, NJS_JOB_PARAMS[0], '1234',
+        action = mr.run(self.conf, module_info, EE2_JOB_PARAMS, '1234',
                         fin_q=q)
         self.assertIn('name', action)
         out = q.get(timeout=10)
@@ -91,7 +93,7 @@ class MethodRunnerTest(unittest.TestCase):
         if os.path.exists('/tmp/mr/workdir/output.json'):
             os.remove('/tmp/mr/workdir/output.json')
         q = Queue()
-        params = deepcopy(NJS_JOB_PARAMS[0])
+        params = deepcopy(EE2_JOB_PARAMS)
         params['method'] = 'echo_test.noout'
         action = mr.run(self.conf, module_info, params, '1234', fin_q=q)
         self.assertIn('name', action)
@@ -113,7 +115,7 @@ class MethodRunnerTest(unittest.TestCase):
         if os.path.exists('/tmp/mr/workdir/output.json'):
             os.remove('/tmp/mr/workdir/output.json')
         q = Queue()
-        params = deepcopy(NJS_JOB_PARAMS[0])
+        params = deepcopy(EE2_JOB_PARAMS)
         params['method'] = 'echo_test.bogus'
         action = mr.run(self.conf, module_info, params, '1234', fin_q=q)
         self.assertIn('name', action)
@@ -137,7 +139,7 @@ class MethodRunnerTest(unittest.TestCase):
         if os.path.exists('/tmp/mr/workdir/output.json'):
             os.remove('/tmp/mr/workdir/output.json')
         q = Queue()
-        params = deepcopy(NJS_JOB_PARAMS[0])
+        params = deepcopy(EE2_JOB_PARAMS)
         params['method'] = 'echo_test.bogus'
         mockrunner = MockRunner()
         mr.runner = mockrunner
@@ -155,7 +157,7 @@ class MethodRunnerTest(unittest.TestCase):
         if os.path.exists('/tmp/mr/workdir/output.json'):
             os.remove('/tmp/mr/workdir/output.json')
         q = Queue()
-        params = deepcopy(NJS_JOB_PARAMS[0])
+        params = deepcopy(EE2_JOB_PARAMS)
         params['method'] = 'echo_test.badmethod'
         action = mr.run(self.conf, module_info, params, '1234', fin_q=q)
         self.assertIn('name', action)

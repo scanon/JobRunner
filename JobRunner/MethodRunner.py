@@ -43,8 +43,8 @@ class MethodRunner:
         # Create all the directories
         # if not os.path.exists(self.basedir):
         #     os.mkdir(self.basedir)
-        logging.info("Config is")
-        logging.info(config)
+        # logging.info("Config is")
+        # logging.info(config)
 
         if not os.path.exists(self.job_dir):
             os.mkdir(self.job_dir)
@@ -189,7 +189,6 @@ class MethodRunner:
             "image_version": image.split('.')[-1],
             "job_id": job_id,
             "method_name": "TODO",
-            "njs_endpoint": "https://kbase.us/services/njs_wrapper",
             "parent_job_id": "",
             "user_name": config['user'],
             "wsid": str(params.get('wsid', ''))

@@ -31,7 +31,7 @@ class JobRunner(object):
 
     def __init__(self, config, ee2_url, job_id, token, admin_token):
         """
-        inputs: config dictionary, NJS URL, Job id, Token, Admin Token
+        inputs: config dictionary, EE2 URL, Job id, Token, Admin Token
         """
 
         self.ee2 = EE2(url=ee2_url, timeout=60)

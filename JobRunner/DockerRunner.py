@@ -102,10 +102,6 @@ class DockerRunner:
         return id
 
     def run(self, job_id, image, env, vols, labels, queues):
-        print("Running container with env")
-        print(env)
-        print("Volumes")
-        print(vols)
         c = self.docker.containers.run(image, 'async',
                                        environment=env,
                                        detach=True,
