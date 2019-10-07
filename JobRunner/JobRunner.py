@@ -318,10 +318,13 @@ class JobRunner(object):
         cbs.kill()
         self.logger.log('Job is done')
 
-        if output.get('error'):
-            error_message = str(output.get('error'))
-            self.logger.error(f"ERROR: Attempting to finish the job with an error {error_message}")
-            self.ee2.finish_job({'job_id': self.job_id, 'error_message': error_message})
+        error = output.get('error')
+        if error:
+            error_message = "Attempting to finish the job with an error"
+            self.logger.error(f"ERROR: Attempting to finish the job with an error {error}")
+            self.ee2.finish_job({'job_id': self.job_id,
+                                 'error_message': error_message,
+                                 'error': error})
         else:
             self.ee2.finish_job({'job_id': self.job_id, 'job_output': output})
 
