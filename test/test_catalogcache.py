@@ -7,7 +7,7 @@ from mock import MagicMock
 from JobRunner.CatalogCache import CatalogCache
 from nose.plugins.attrib import attr
 from copy import deepcopy
-from .mock_data import CATALOG_GET_MODULE_VERSION, NJS_JOB_PARAMS,\
+from .mock_data import CATALOG_GET_MODULE_VERSION, \
     CATALOG_LIST_VOLUME_MOUNTS, CATALOG_GET_SECURE_CONFIG_PARAMS
 
 

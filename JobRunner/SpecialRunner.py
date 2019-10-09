@@ -1,7 +1,7 @@
 import os
 from threading import Thread
 from subprocess import Popen, PIPE
-from time import sleep
+from time import sleep, time
 from select import select
 
 
@@ -24,10 +24,11 @@ class SpecialRunner:
         self.shareddir = os.path.join(self.workdir, 'workdir/tmp')
         self.containers = []
         self.threads = []
-        self.allowed_types = ['slurm']
+        self.allowed_types = ['slurm', 'wdl']
 
-    _POLL = 0.1
-    _POLL2 = 0.1
+    _BATCH_POLL = 10
+    _FILE_POLL = 10
+    _MAX_RETRY = 5
 
     def run(self, config, data, job_id, callback=None, fin_q=[]):
         # TODO:
@@ -45,7 +46,10 @@ class SpecialRunner:
         if method not in self.allowed_types:
             raise ValueError("Invalid special method type")
 
-        return self._batch_submit(method, config, data, job_id, fin_q)
+        if method == 'slurm':
+            return self._batch_submit(method, config, data, job_id, fin_q)
+        elif method == 'wdl':
+            return self._wdl_run(method, config, data, job_id, fin_q)
 
     def _check_batch_job(self, check, slurm_jobid):
         cmd = [check, slurm_jobid]
@@ -58,23 +62,27 @@ class SpecialRunner:
         self.logger.log("Watching Slurm Job ID %s" % (slurm_jobid))
         check = '%s_checkjob' % (stype)
         cont = True
-        started = False
+        retry = 0
         # Wait for job to start out output file to appear
         while cont:
             state = self._check_batch_job(check, slurm_jobid)
             if state == 'Running':
                 self.logger.log("Running")
-                started = True
             elif state == "Pending":
                 self.logger.log("Pending")
             elif state == "Finished":
                 cont = False
-                self.logger.log("F")
+                self.logger.log("Finished")
+            else:
+                if retry > self._MAX_RETRY:
+                    cont = False
+                retry += 1
+                self.logger.log("Unknown")
 
-            if started and os.path.exists(outfile):
+            if os.path.exists(outfile):
                 cont = False
 
-            sleep(self._POLL)
+            sleep(self._BATCH_POLL)
 
         # Tail output
         rlist = []
@@ -94,10 +102,13 @@ class SpecialRunner:
         cont = True
         if len(rlist) == 0:
             cont = False
+        next_check = 0
         while cont:
-            state = self._check_batch_job(check, slurm_jobid)
-            if state != "Running":
-                cont = False
+            if time() > next_check:
+                state = self._check_batch_job(check, slurm_jobid)
+                next_check = time() + self._BATCH_POLL
+                if state != "Running":
+                    cont = False
             r, w, e = select(rlist, [], [], 10)
             for f in r:
                 for line in f:
@@ -105,10 +116,16 @@ class SpecialRunner:
                         self.logger.log(line)
                     elif f == stderr and self.logger:
                         self.logger.error(line)
-            sleep(self._POLL2)
-        res = {'result': [{'exit_status': 0}]}
+            sleep(self._FILE_POLL)
+        # TODO: Extract real exit code
+        resp = {
+            'exit_status': 0,
+            'output_file': outfile,
+            'error_file': errfile
+        }
+        result = {'result': [resp]}
         for q in queues:
-            q.put(['finished_special', job_id, res])
+            q.put(['finished_special', job_id, result])
 
     def _batch_submit(self, stype, config, data, job_id, fin_q):
         """
@@ -137,6 +154,63 @@ class SpecialRunner:
                                                      slurm_jobid,
                                                      outfile, errfile,
                                                      fin_q])
+        self.threads.append(out)
+        out.start()
+        self.containers.append(proc)
+        return proc
+
+    def _readio(self, p, job_id, queues):
+        cont = True
+        last = False
+        while cont:
+            rlist = [p.stdout, p.stderr]
+            x = select(rlist, [], [], 1)[0]
+            for f in x:
+                if f == p.stderr:
+                    error = 1
+                else:
+                    error = 0
+                lines = []
+                for line in f.read().decode('utf-8').split("\n"):
+                    lines.append({'line': line, 'is_error': error})
+                if len(lines) > 0:
+                    self.logger.log_lines(lines)
+            if last:
+                cont = False
+            if p.poll() is not None:
+                last = True
+        resp = {
+            'exit_status': p.returncode,
+            'output_file': None,
+            'error_file': None
+        }
+        result = {'result': [resp]}
+        p.wait()
+        for q in queues:
+            q.put(['finished_special', job_id, result])
+
+    def _wdl_run(self, stype, config, data, job_id, queues):
+        """
+        This subbmits the job to the batch system and starts
+        a thread to monitor the progress.
+
+        """
+        params = data['params'][0]
+        if 'workflow' not in params:
+            raise ValueError("Missing workflow script")
+        if 'inputs' not in params:
+            raise ValueError("Missing inputs")
+        os.chdir(self.shareddir)
+        wdl = params['workflow']
+        if not os.path.exists(wdl):
+            raise OSError("Workflow script not found at %s" % (wdl))
+
+        inputs = params['inputs']
+        if not os.path.exists(inputs):
+            raise OSError("Inputs file not found at %s" % (inputs))
+        cmd = ['wdl_run', inputs, wdl]
+        proc = Popen(cmd, bufsize=0, stdout=PIPE, stderr=PIPE)
+        out = Thread(target=self._readio, args=[proc, job_id, queues])
         self.threads.append(out)
         out.start()
         self.containers.append(proc)

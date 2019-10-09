@@ -11,4 +11,11 @@ module special {
 
    funcdef slurm(UnspecifiedObject params) returns (SlurmOutput output);
 
+    typedef structure {
+        string report_name;
+    } WDLOutput;
+
+
+   funcdef wdl(UnspecifiedObject params) returns (WDLOutput output);
+
 };

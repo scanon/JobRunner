@@ -31,7 +31,7 @@ class JobRunner(object):
 
     def __init__(self, config, ee2_url, job_id, token, admin_token):
         """
-        inputs: config dictionary, NJS URL, Job id, Token, Admin Token
+        inputs: config dictionary, EE2 URL, Job id, Token, Admin Token
         """
 
         self.ee2 = EE2(url=ee2_url, timeout=60)
@@ -162,9 +162,11 @@ class JobRunner(object):
                         self._cancel()
                         return {'error': 'Canceled or unexpected error'}
                     if req[2].get('method').startswith('special.'):
-                        self._submit_special(config=config, job_id=req[1], job_params=req[2])
+                        self._submit_special(config=config, job_id=req[1],
+                                             job_params=req[2])
                     else:
-                        self._submit(config=config, job_id=req[1], job_params=req[2])
+                        self._submit(config=config, job_id=req[1],
+                                     job_params=req[2])
                     ct += 1
                 elif req[0] == 'finished_special':
                     job_id = req[1]
@@ -284,9 +286,6 @@ class JobRunner(object):
         except Exception as e:
             self.logger.error("Failed to config . Exiting.")
             raise e
-
-
-
 
         config['job_id'] = self.job_id
         self.logger.log(f"Server version of Execution Engine: {config.get('ee.server.version')}")

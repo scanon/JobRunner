@@ -33,7 +33,7 @@ CATALOG_GET_MODULE_VERSION = {
     "git_commit_message": "Merge a pull"
 }
 
-NJS_JOB_PARAMS = [{
+EE2_JOB_PARAMS = {
     u'app_id': u'echo_test/echo_test',
     u'meta': {
         u'cell_id': u'c7fd3baa-69de-4858-90b9-e0332b8371ad',
@@ -49,13 +49,11 @@ NJS_JOB_PARAMS = [{
     u'requested_release': None,
     u'service_ver': u'4b5a37e6fed857c199df65191ba3344a467b8aab',
     u'wsid': 42906
-    },
-    {
+    }
+EE2_LIST_CONFIG =    {
     u'auth-service-url': _BASE + u'auth/api/legacy/KBase/Sessions/Login',
     u'auth-service-url-allow-insecure': u'false',
-    u'auth.service.url.v2': _BASE + u'auth/api/V2/token',
     u'auth-service-url-v2': _BASE + u'auth/api/V2/token',
-    u'scratch':  u'/kb/module/work/tmp',
     u'awe.client.callback.networks': u'docker0,eth0',
     u'awe.client.docker.uri': u'unix:///var/run/docker.sock',
     u'catalog.srv.url': _BASE + u'catalog',
@@ -63,21 +61,16 @@ NJS_JOB_PARAMS = [{
     u'condor.job.shutdown.minutes': u'10080',
     u'docker.registry.url': u'dockerhub-prod.kbase.us',
     u'ee.server.version': u'0.2.11',
-    u'handle.url': _BASE + u'handle_service',
     u'handle-url': _BASE + u'handle_service',
-    u'jobstatus.srv.url': _BASE + u'userandjobstate',
-    u'kbase.endpoint': u'https://ci.kbase.us/services',
     u'kbase-endpoint': u'https://ci.kbase.us/services',
-    u'workspace-url': u'https://ci.kbase.us/services/ws',
     u'ref.data.base': u'/kb/data',
-    u'self.external.url': _BASE + u'ee2',
     u'external-url': _BASE + u'ee2',
-    u'shock.url': _BASE + u'shock-api',
     u'shock-url': _BASE + u'shock-api',
     u'srv.wiz.url': _BASE + u'service_wizard',
     u'time.before.expiration': u'10',
-    u'workspace.srv.url': _BASE + u'ws'
-}]
+    u'workspace-url': _BASE + u'ws',
+    u'scratch': '/tmp'
+}
 
 CATALOG_LIST_VOLUME_MOUNTS = [
     {

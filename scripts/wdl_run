@@ -1,0 +1,5 @@
+#!/bin/sh
+
+CROMWELL=$HOME/cromwell-44.jar
+CROMWELL_CONFIG=$HOME/cromwell.conf
+java -Dconfig.file=$CROMWELL_CONFIG -jar $CROMWELL run -m meta.json -i $1 $2

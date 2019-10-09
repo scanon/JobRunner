@@ -43,6 +43,8 @@ class MethodRunner:
         # Create all the directories
         # if not os.path.exists(self.basedir):
         #     os.mkdir(self.basedir)
+        # logging.info("Config is")
+        # logging.info(config)
 
         if not os.path.exists(self.job_dir):
             os.mkdir(self.job_dir)
@@ -55,7 +57,7 @@ class MethodRunner:
         conf_prop['global'] = {
           'kbase_endpoint': config['kbase-endpoint'],
           'workspace_url': config['workspace-url'],
-          'external_url' : config['external-url'],
+          'external_url': config['external-url'],
           'shock_url': config['shock-url'],
           'handle_url': config['handle-url'],
           'auth_service_url': config['auth-service-url'],
@@ -144,7 +146,8 @@ class MethodRunner:
             job_dir: {'bind': '/kb/module/work', 'mode': 'rw'}
         }
         if subjob:
-            wdt = os.path.join(job_dir, "/tmp")
+            parent_workdir = self._get_job_dir(job_id, subjob=False)
+            wdt = os.path.join(parent_workdir, "tmp")
             vols[wdt] = {'bind': "/kb/module/work/tmp", 'mode': 'rw'}
 
         if 'volume_mounts' in config:
@@ -186,7 +189,6 @@ class MethodRunner:
             "image_version": image.split('.')[-1],
             "job_id": job_id,
             "method_name": "TODO",
-            "njs_endpoint": "https://kbase.us/services/njs_wrapper",
             "parent_job_id": "",
             "user_name": config['user'],
             "wsid": str(params.get('wsid', ''))

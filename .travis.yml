@@ -22,6 +22,8 @@ install:
   - pip install -r requirements.txt
   - pip install -r requirements-dev.txt
   - pip install codecov
+  - (cd $HOME ; wget https://github.com/broadinstitute/cromwell/releases/download/44/cromwell-44.jar )
+  - touch $HOME/cromwell.conf
   - make runtester
   - make mock
 

@@ -39,22 +39,22 @@ class DockerRunner:
         This is not fully implemented yet and sould be rethought.
         """
         lines_by_time = dict()
-        if len(sout) > 0:
-            ierr = 0
-            for line in sout.decode("utf-8").split('\n'):
+        ierr = 0
+        for stream in [sout, serr]:
+            if len(sout) == 0:
+                continue
+            for line in stream.decode("utf-8").split('\n'):
                 if len(line) > 0:
-                    (ts, txt) = line.split(maxsplit=1)
+                    elements = line.split(maxsplit=1)
+                    if len(elements) == 2:
+                        (ts, txt) = elements
+                    else:
+                        ts = elements[0]
+                        txt = ''
                     if ts not in lines_by_time:
                         lines_by_time[ts] = []
                     lines_by_time[ts].append({'line': txt, 'is_error': ierr})
-        if len(serr) > 0:
-            ierr = 1
-            for line in serr.decode("utf-8").split('\n'):
-                if len(line) > 0:
-                    (ts, txt) = line.split(maxsplit=1)
-                    if ts not in lines_by_time:
-                        lines_by_time[ts] = []
-                    lines_by_time[ts].append({'line': txt, 'is_error': ierr})
+            ierr += 1
         nlines = []
         for ts in sorted(lines_by_time.keys()):
             nlines.extend(lines_by_time[ts])
@@ -83,25 +83,26 @@ class DockerRunner:
                         dolast = True
                 except Exception:
                     dolast = True
-            try:
-                c.remove()
-            except Exception:
-                # Maybe something already cleaned it up.  Move on.
-                pass
-            self.containers.remove(c)
-            for q in queues:
-                q.put(['finished', job_id, None])
         except Exception as e:
             if self.logger is not None:
                 self.logger.error("Unexpected failure")
             else:
                 print("Exception in docker logging for %s" % (c.id))
-                raise (e)
+                raise(e)
+        finally:
+            try:
+                c.remove()
+                self.containers.remove(c)
+            except Exception:
+                # Maybe something already cleaned it up.  Move on.
+                pass
+            for q in queues:
+                q.put(['finished', job_id, None])
 
     def get_image(self, image):
         """
-        Retrieve an image by ID, and pull it if we don't already have it locally on the current
-        worker node.
+        Retrieve an image by ID, and pull it if we don't already have it
+        locally on the current worker node.
         :param image: The image name to pull from from dockerhub
         :return: ID of the pulled image
         :param image:
@@ -119,7 +120,7 @@ class DockerRunner:
         if not pulled:
             self.logger.log("Pulling image {}".format(image))
             image_id = self.docker.images.pull(image).id
-            
+
         return image_id
 
     def run(self, job_id, image, env, vols, labels, queues):
