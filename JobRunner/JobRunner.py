@@ -37,7 +37,7 @@ class JobRunner(object):
         self.ee2 = EE2(url=ee2_url, timeout=60)
         self.logger = Logger(ee2_url, job_id, ee2=self.ee2)
         self.token = token
-        self.client_group = os.environ.get("AWE_CLIENTGROUP", "None")
+        self.client_group = os.environ.get("CLIENTGROUP", "None")
         self.admin_token = admin_token
         self.config = self._init_config(config, job_id, ee2_url)
         self.hostname = gethostname()
