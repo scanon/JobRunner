@@ -78,10 +78,12 @@ class MethodRunner:
             "call_stack": [
                 {
                     "method": params['method'],
-                    "time": ts
+                    "time": ts,
+                    "job_id": self.job_id
                 }
             ],
             "service_ver": params.get('service_ver')
+
         }
         input = {
             "id": self.job_id,
