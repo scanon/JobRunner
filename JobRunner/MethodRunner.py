@@ -1,11 +1,15 @@
-from .DockerRunner import DockerRunner
-from .ShifterRunner import ShifterRunner
-import os
 import json
+import logging
+import os
 from configparser import ConfigParser
 from datetime import datetime, timezone
-import logging
+
+from .DockerRunner import DockerRunner
+from .ShifterRunner import ShifterRunner
+
 logging.basicConfig(level=logging.INFO)
+
+
 # Write out config file with all kbase endpoints / secure params
 
 
@@ -29,6 +33,9 @@ class MethodRunner:
         # self.basedir = os.path.join(self.workdir, 'job_%s' % (self.job_id))
         self.refbase = config.get('refdata_dir', '/tmp/ref')
         self.job_dir = os.path.join(self.workdir, 'workdir')
+        self.hostname = config.get('hostname')
+        self.ee2_endpoint = config.get('ee2_url')
+
         logging.info(f"Job dir is {self.job_dir}")
         runtime = config.get('runtime', 'docker')
         self.containers = []
@@ -55,17 +62,17 @@ class MethodRunner:
         conf_prop = ConfigParser()
 
         conf_prop['global'] = {
-          'kbase_endpoint': config['kbase-endpoint'],
-          'workspace_url': config['workspace-url'],
-          'external_url': config['external-url'],
-          'shock_url': config['shock-url'],
-          'handle_url': config['handle-url'],
-          'auth_service_url': config['auth-service-url'],
-          'auth_service_url-v2': config['auth-service-url-v2'],
-          'auth_service_url_allow_insecure':
-          config['auth-service-url-allow-insecure'],
-          'scratch': config['scratch']
-           }
+            'kbase_endpoint': config['kbase-endpoint'],
+            'workspace_url': config['workspace-url'],
+            'external_url': config['external-url'],
+            'shock_url': config['shock-url'],
+            'handle_url': config['handle-url'],
+            'auth_service_url': config['auth-service-url'],
+            'auth_service_url-v2': config['auth-service-url-v2'],
+            'auth_service_url_allow_insecure':
+                config['auth-service-url-allow-insecure'],
+            'scratch': config['scratch']
+        }
 
         with open(job_dir + '/config.properties', 'w') as configfile:
             conf_prop.write(configfile)
@@ -83,7 +90,6 @@ class MethodRunner:
                 }
             ],
             "service_ver": params.get('service_ver')
-
         }
         input = {
             "id": self.job_id,
@@ -91,7 +97,7 @@ class MethodRunner:
             "method": params['method'],
             "params": params['params'],
             "context": ctx
-            }
+        }
         ijson = job_dir + '/input.json'
         with open(ijson, 'w') as f:
             f.write(json.dumps(input))
@@ -183,6 +189,7 @@ class MethodRunner:
                 env[k] = p['param_value']
 
         # Set up labels used for job administration purposes
+
         labels = {
             "app_id": "{}/{}".format(module, method),
             "app_name": method,
@@ -190,10 +197,12 @@ class MethodRunner:
             "image_name": image,
             "image_version": image.split('.')[-1],
             "job_id": job_id,
-            "method_name": "TODO",
-            "parent_job_id": "",
-            "user_name": config['user'],
-            "wsid": str(params.get('wsid', ''))
+            "method_name": method,
+            "parent_job_id": params.get('parent_job_id'),
+            "user_name": config.get('user'),
+            "wsid": str(params.get('wsid', '')),
+            'ee2_endpoint' : self.ee2_endpoint,
+            'worker_hostname' : self.hostname,
         }
 
         # If there is a fin_q then run this async
@@ -208,7 +217,7 @@ class MethodRunner:
         self.containers.append(c)
         return action
 
-    def get_output(self, job_id, subjob=True, max_size=1024*1024*1024):
+    def get_output(self, job_id, subjob=True, max_size=1024 * 1024 * 1024):
         # Attempt to read output file and see if it is well formed
         # Throw errors if not
         of = os.path.join(self._get_job_dir(job_id, subjob=subjob),
@@ -245,7 +254,8 @@ class MethodRunner:
             error_code = error.get('code')
             error_name = error.get('name')
             error_error = error.get('error')
-            self.logger.error(f"Error in job msg:{error_msg} code:{error_code} name:{error_name} error:{error_error}")
+            self.logger.error(
+                f"Error in job msg:{error_msg} code:{error_code} name:{error_name} error:{error_error}")
 
         return output
 
