@@ -1,5 +1,6 @@
 import logging
 import os
+import requests
 import signal
 import socket
 from multiprocessing import Process, Queue
@@ -7,8 +8,6 @@ from queue import Empty
 from socket import gethostname
 from time import sleep as _sleep
 from time import time as _time
-
-import requests
 
 from clients.authclient import KBaseAuth
 from clients.execution_engine2Client import execution_engine2 as EE2
@@ -19,8 +18,7 @@ from .callback_server import start_callback_server
 from .logger import Logger
 from .provenance import Provenance
 
-logging.basicConfig(level=logging.INFO)
-
+logging.basicConfig(format='%(created)s %(levelname)s: %(message)s', level=logging.INFO)
 
 class JobRunner(object):
     """
@@ -251,9 +249,10 @@ class JobRunner(object):
         will not return until the job finishes or encounters and error.
         This method also handles starting up the callback server.
         """
-        running_msg = ('Running on {} ({}) in {}'.format(self.hostname,
-                                                         self.ip,
-                                                         self.workdir))
+        running_msg = ('Running job {} on {} ({}) in {}'.format(self.job_id,
+                                                                self.hostname,
+                                                                self.ip,
+                                                                self.workdir))
         self.logger.log(running_msg)
         logging.info(running_msg)
 
