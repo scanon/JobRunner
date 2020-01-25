@@ -50,6 +50,7 @@ class JobRunner(object):
         self.sr = SpecialRunner(self.config, job_id, logger=self.logger)
         self.cc = CatalogCache(config)
         self.max_task = config.get('max_tasks', 20)
+        self.cbs = None
         signal.signal(signal.SIGINT, self.shutdown)
 
     def _init_config(self, config, job_id, ee2_url):
@@ -305,15 +306,15 @@ class JobRunner(object):
         logging.info('Starting callback server')
         cb_args = [self.ip, self.port, self.jr_queue, self.callback_queue,
                    self.token]
-        cbs = Process(target=start_callback_server, args=cb_args)
-        cbs.start()
+        self.cbs = Process(target=start_callback_server, args=cb_args)
+        self.cbs.start()
 
         # Submit the main job
         self._submit(config=config, job_id=self.job_id, job_params=job_params, subjob=False)
 
         output = self._watch(config)
 
-        cbs.kill()
+        self.cbs.kill()
         self.logger.log('Job is done')
 
         error = output.get('error')
