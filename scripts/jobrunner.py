@@ -37,6 +37,22 @@ def _get_admin_token():
     return admin_token
 
 
+def terminate_job(jr: JobRunner):
+    """
+    Unexpected Job Error, so attempt to finish the job, and if that fails, attempt to cancel the job
+    """
+    params = {'job_id': jr.job_id,
+              'error_message': 'Unexpected Job Error',
+              'error_code': 2,
+              'terminated_code': 2
+              }
+
+    try:
+        jr.ee2.finish_job(params=params)
+    except Exception:
+        jr.ee2.cancel_job(params=params)
+
+
 def main():
     # Input job id and njs_service URL
     if len(sys.argv) == 3:
@@ -56,7 +72,7 @@ def main():
     auth_ext = 'auth/api/legacy/KBase/Sessions/Login'
     config['auth-service-url'] = ee2_url.replace('ee2', auth_ext)
 
-    #WARNING: Condor job environment may not inherit from system ENV
+    # WARNING: Condor job environment may not inherit from system ENV
     if 'USE_SHIFTER' in os.environ:
         config['runtime'] = 'shifter'
 
@@ -74,7 +90,7 @@ def main():
     except Exception as e:
         logging.error("An unhandled error was encountered")
         logging.error(e)
-
+        terminate_job(jr)
         sys.exit(2)
 
 
