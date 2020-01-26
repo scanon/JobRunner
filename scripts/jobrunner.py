@@ -11,7 +11,18 @@ from JobRunner.JobRunner import JobRunner
 logging.basicConfig(level=logging.INFO)
 _TOKEN_ENV = "KB_AUTH_TOKEN"
 _ADMIN_TOKEN_ENV = "KB_ADMIN_AUTH_TOKEN"
+_DEBUG = "DEBUG_MODE"
 
+
+def _get_debug_mode():
+    """
+    Check to see if this job run is in debug mode
+    :return:
+    """
+    if _DEBUG in os.environ:
+        if os.environ[_DEBUG].lower() == 'true':
+            return True
+    return False
 
 def _get_token():
     # Get the token from the environment or a file.
@@ -39,27 +50,6 @@ def _get_admin_token():
     return admin_token
 
 
-def cleanup_containers(jr: JobRunner):
-    mr_containers = jr.mr.containers
-    sr_containers = jr.sr.containers
-
-    for container in mr_containers:  # type: Container
-        try:
-            logging.info(f"About to kill docker container {container}")
-            container.kill()
-            container.remove()
-        except Exception:
-            pass
-
-    for container in sr_containers:
-        try:
-            logging.info(f"About to kill special container {container}")
-            container.kill()
-            container.remove()
-        except Exception:
-            pass
-
-
 def terminate_job(jr: JobRunner):
     """
     Unexpected Job Error, so attempt to finish the job, and if that fails, attempt to cancel the job
@@ -79,8 +69,8 @@ def terminate_job(jr: JobRunner):
             pass
 
     # Attempt to clean up Docker and Special Runner Containers
-    cleanup_containers(jr)
     # Kill Callback Server
+    jr.mr.cleanup_all(debug=_get_debug_mode())
     jr.cbs.kill()
 
 

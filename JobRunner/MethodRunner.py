@@ -214,6 +214,8 @@ class MethodRunner:
         }
         # Do we need to do more for error handling?
         c = self.runner.run(job_id, image, env, vols, labels, [fin_q])
+        logging.info(f"Container id is {c.id}")
+        self.logger.log(f"Container id is {c.id}")
         self.containers.append(c)
         return action
 
@@ -259,7 +261,11 @@ class MethodRunner:
 
         return output
 
-    def cleanup_all(self):
+    def cleanup_all(self, debug=True):
+
+        if debug is False:
+            return
+
         for c in self.containers:
             try:
                 self.runner.remove(c)

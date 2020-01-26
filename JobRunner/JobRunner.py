@@ -136,6 +136,7 @@ class JobRunner(object):
     def _cancel(self):
         self.mr.cleanup_all()
 
+
     def shutdown(self, sig, bt):
         print("Recieved an interupt")
         # Send a cancel to the queue
