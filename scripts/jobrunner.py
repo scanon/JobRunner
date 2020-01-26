@@ -107,9 +107,10 @@ def main():
 
     try:
         logging.info("About to create job runner")
-        logging.info('Debug Mode is debug')
 
         jr = JobRunner(config, ee2_url, job_id, token, at, debug)
+        logging.info(f'Debug Mode is {debug}')
+        jr.logger.info(f'Debug Mode is {debug}')
         logging.info("About to run job")
         jr.run()
     except Exception as e:
