@@ -1,4 +1,5 @@
 import atexit
+import logging
 from threading import Thread
 from time import sleep as _sleep
 from time import time as _time
@@ -6,6 +7,8 @@ from typing import List
 
 import docker
 from docker.models.containers import Container
+
+logging.basicConfig(level=logging.INFO)
 
 
 class DockerRunner:
@@ -104,9 +107,15 @@ class DockerRunner:
 
             try:
                 if self.debug is True:
-                    self.logger.log(
-                        f"Not going to delete container {c.id} because debug mode is on")
+                    msg = f"Not going to delete container {c.id} because debug mode is on"
+                    print(msg)
+                    self.logger.log(msg)
+                    logging.info(msg)
                 else:
+                    msg = f"Going to delete container {c.id}"
+                    print(msg)
+                    self.logger.log(msg)
+                    logging.info(msg)
                     c.remove()
                     self.containers.remove(c)
             except Exception:
