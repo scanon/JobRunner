@@ -51,7 +51,7 @@ class JobRunner(object):
         self.cc = CatalogCache(config)
         self.max_task = config.get('max_tasks', 20)
         self.cbs = None
-        self.debug = None
+        self.debug = debug
         signal.signal(signal.SIGINT, self.shutdown)
 
     def _init_config(self, config, job_id, ee2_url):

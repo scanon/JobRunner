@@ -72,13 +72,13 @@ def terminate_job(jr: JobRunner):
     # Kill Callback Server
     try:
         jr.mr.cleanup_all(debug=_get_debug_mode())
-    except:
-        pass
+    except Exception as e:
+        logging.info(e)
 
     try:
         jr.cbs.kill()
     except:
-        pass
+        logging.info(e)
 
     jr.logger.error(f'An unhandled exception resulted in a premature exit of the app. Job id is {jr.job_id}')
 
@@ -116,7 +116,6 @@ def main():
 
     try:
         logging.info("About to create job runner")
-
         jr = JobRunner(config, ee2_url, job_id, token, at, debug)
         logging.log(f'Debug Mode is {debug}')
         jr.logger.log(f'Debug Mode is {debug}')
