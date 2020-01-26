@@ -111,6 +111,18 @@ class DockerRunner:
                     print(msg)
                     self.logger.log(msg)
                     logging.info(msg)
+                    msg2="About to try to capture last few logs again"
+                    logging.info(msg2)
+                    self.logger.log(msg2)
+                    # Capture the last few seconds of logs
+                    try:
+                        now = int(_time())
+                        self._shepherd_logs(c, now, last)
+                    except Exception:
+                        pass
+                    logging.info("Did it work?")
+                    self.logger.log("Did it work?")
+
                 else:
                     msg = f"Going to delete container {c.id}"
                     print(msg)
