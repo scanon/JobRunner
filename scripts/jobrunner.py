@@ -107,6 +107,8 @@ def main():
 
     try:
         logging.info("About to create job runner")
+        logging.info('Debug Mode is debug')
+
         jr = JobRunner(config, ee2_url, job_id, token, at, debug)
         logging.info("About to run job")
         jr.run()
