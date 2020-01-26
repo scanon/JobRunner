@@ -117,9 +117,9 @@ def main():
     try:
         logging.info("About to create job runner")
         jr = JobRunner(config, ee2_url, job_id, token, at, debug)
-        logging.log(f'Debug Mode is {debug}')
-        jr.logger.log(f'Debug Mode is {debug}')
-        logging.log("About to run job")
+        logging.info(f'Debug Mode is {debug}')
+        jr.logger.log(line=f'Debug Mode is {debug}')
+        logging.info("About to run job")
         jr.run()
     except Exception as e:
         logging.error("An unhandled error was encountered")
