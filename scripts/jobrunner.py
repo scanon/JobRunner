@@ -70,8 +70,17 @@ def terminate_job(jr: JobRunner):
 
     # Attempt to clean up Docker and Special Runner Containers
     # Kill Callback Server
-    jr.mr.cleanup_all(debug=_get_debug_mode())
-    jr.cbs.kill()
+    try:
+        jr.mr.cleanup_all(debug=_get_debug_mode())
+    except:
+        pass
+
+    try:
+        jr.cbs.kill()
+    except:
+        pass
+
+    jr.logger.error(f'An unhandled exception resulted in a premature exit of the app. Job id is {jr.job_id}')
 
 
 def main():
@@ -109,9 +118,9 @@ def main():
         logging.info("About to create job runner")
 
         jr = JobRunner(config, ee2_url, job_id, token, at, debug)
-        logging.info(f'Debug Mode is {debug}')
-        jr.logger.info(f'Debug Mode is {debug}')
-        logging.info("About to run job")
+        logging.log(f'Debug Mode is {debug}')
+        jr.logger.log(f'Debug Mode is {debug}')
+        logging.log("About to run job")
         jr.run()
     except Exception as e:
         logging.error("An unhandled error was encountered")
