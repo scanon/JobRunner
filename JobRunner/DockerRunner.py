@@ -22,7 +22,7 @@ class DockerRunner:
         for container in self.containers:
             self.remove(container)
 
-    def __init__(self, logger=None):
+    def __init__(self, logger=None, debug=False):
         """
         Inputs: config dictionary, Job ID, and optional logger
         """
@@ -31,6 +31,7 @@ class DockerRunner:
         self.containers = []  # type: List[Container]
         self.threads = []  # type: List[Thread]
         self.log_interval = 1
+        self.debug = debug
         atexit.register(self._cleanup_docker_containers)
 
     def _sort_lines_by_time(self, sout, serr):
@@ -60,19 +61,22 @@ class DockerRunner:
             nlines.extend(lines_by_time[ts])
         return nlines
 
+    def _shepherd_logs(self, c, now, last):
+        sout = c.logs(stdout=True, stderr=False, since=last, until=now,
+                      timestamps=True)
+        serr = c.logs(stdout=False, stderr=True, since=last, until=now,
+                      timestamps=True)
+        lines = self._sort_lines_by_time(sout, serr)
+        if self.logger is not None:
+            self.logger.log_lines(lines)
+
     def _shepherd(self, c, job_id, queues):
         last = 1
         try:
             dolast = False
             while True:
                 now = int(_time())
-                sout = c.logs(stdout=True, stderr=False, since=last, until=now,
-                              timestamps=True)
-                serr = c.logs(stdout=False, stderr=True, since=last, until=now,
-                              timestamps=True)
-                lines = self._sort_lines_by_time(sout, serr)
-                if self.logger is not None:
-                    self.logger.log_lines(lines)
+                self._shepherd_logs(c, now, last)
                 last = now
                 if dolast:
                     break
@@ -87,12 +91,24 @@ class DockerRunner:
             if self.logger is not None:
                 self.logger.error("Unexpected failure")
             else:
-                print("Exception in docker logging for %s" % (c.id))
-                raise(e)
+                print(f"Exception in docker logging for {c.id}")
+                raise e
         finally:
+
+            # Capture the last few seconds of logs
             try:
-                c.remove()
-                self.containers.remove(c)
+                now = int(_time())
+                self._shepherd_logs(c, now, last)
+            except Exception:
+                pass
+
+            try:
+                if self.debug is True:
+                    self.logger.log(
+                        f"Not going to delete container {c.id} because debug mode is on")
+                else:
+                    c.remove()
+                    self.containers.remove(c)
             except Exception:
                 # Maybe something already cleaned it up.  Move on.
                 pass
