@@ -46,12 +46,13 @@ class JobRunner(object):
         self.callback_queue = Queue()
         self.prov = None
         self._init_callback_url()
-        self.mr = MethodRunner(self.config, job_id, logger=self.logger)
+        self.debug = debug
+        self.mr = MethodRunner(self.config, job_id, logger=self.logger, debug=self.debug)
         self.sr = SpecialRunner(self.config, job_id, logger=self.logger)
         self.cc = CatalogCache(config)
         self.max_task = config.get('max_tasks', 20)
         self.cbs = None
-        self.debug = debug
+
         signal.signal(signal.SIGINT, self.shutdown)
 
     def _init_config(self, config, job_id, ee2_url):
