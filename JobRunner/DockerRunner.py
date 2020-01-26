@@ -48,7 +48,7 @@ class DockerRunner:
         lines_by_time = dict()
         ierr = 0
         for stream in [sout, serr]:
-            if len(sout) == 0:
+            if len(sout) == 0 and len(serr) == 0:
                 continue
             for line in stream.decode("utf-8").split('\n'):
                 if len(line) > 0:
