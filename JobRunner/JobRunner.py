@@ -27,7 +27,7 @@ class JobRunner(object):
     to support subjobs and provenenace calls.
     """
 
-    def __init__(self, config, ee2_url, job_id, token, admin_token):
+    def __init__(self, config, ee2_url, job_id, token, admin_token, debug=False):
         """
         inputs: config dictionary, EE2 URL, Job id, Token, Admin Token
         """
@@ -51,6 +51,7 @@ class JobRunner(object):
         self.cc = CatalogCache(config)
         self.max_task = config.get('max_tasks', 20)
         self.cbs = None
+        self.debug = None
         signal.signal(signal.SIGINT, self.shutdown)
 
     def _init_config(self, config, job_id, ee2_url):
@@ -134,7 +135,7 @@ class JobRunner(object):
         self._update_prov(action)
 
     def _cancel(self):
-        self.mr.cleanup_all()
+        self.mr.cleanup_all(debug=self.debug)
 
 
     def shutdown(self, sig, bt):

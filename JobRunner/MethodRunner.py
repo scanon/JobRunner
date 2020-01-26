@@ -261,9 +261,13 @@ class MethodRunner:
 
         return output
 
-    def cleanup_all(self, debug=True):
+    def cleanup_all(self, debug=False):
 
-        if debug is False:
+        if debug is True:
+            message = 'Debug mode is on, will not delete containers'
+            for c in self.containers:
+                message += f' cid={c.id} '
+            self.logger.error(line=message)
             return
 
         for c in self.containers:

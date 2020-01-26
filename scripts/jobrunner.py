@@ -102,10 +102,12 @@ def main():
 
     token = _get_token()
     at = _get_admin_token()
+    debug = _get_debug_mode()
+
 
     try:
         logging.info("About to create job runner")
-        jr = JobRunner(config, ee2_url, job_id, token, at)
+        jr = JobRunner(config, ee2_url, job_id, token, at, debug)
         logging.info("About to run job")
         jr.run()
     except Exception as e:
