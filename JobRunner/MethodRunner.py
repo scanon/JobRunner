@@ -21,7 +21,7 @@ class MethodRunner:
     and returning output via a queue.
     """
 
-    def __init__(self, config, job_id, logger=None):
+    def __init__(self, config, job_id, logger=None, debug=False):
         """
         Inputs: config dictionary, Job ID, and optional logger
         """
@@ -35,6 +35,7 @@ class MethodRunner:
         self.job_dir = os.path.join(self.workdir, 'workdir')
         self.hostname = config.get('hostname')
         self.ee2_endpoint = config.get('ee2_url')
+        self.debug = debug
 
         logging.info(f"Job dir is {self.job_dir}")
         runtime = config.get('runtime', 'docker')
@@ -42,7 +43,7 @@ class MethodRunner:
         if runtime == 'shifter':
             self.runner = ShifterRunner(logger=logger)
         elif runtime == 'docker':
-            self.runner = DockerRunner(logger=logger)
+            self.runner = DockerRunner(logger=logger, debug=self.debug)
         else:
             raise OSError("Unknown runtime")
 
