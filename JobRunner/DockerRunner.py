@@ -22,6 +22,9 @@ class DockerRunner:
         At exit, attempt to clean up all docker containers.
         Suppress errors in case they don't exist
         """
+        if self.debug is True:
+            return
+
         for container in self.containers:
             self.remove(container)
 
