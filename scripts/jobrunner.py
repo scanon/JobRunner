@@ -3,12 +3,12 @@
 import logging
 import os
 import sys
-
-from docker.models.containers import Container
+import time
+from typing import Dict
 
 from JobRunner.JobRunner import JobRunner
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.INFO, format=log_format)
 _TOKEN_ENV = "KB_AUTH_TOKEN"
 _ADMIN_TOKEN_ENV = "KB_ADMIN_AUTH_TOKEN"
 _DEBUG = "DEBUG_MODE"
@@ -23,6 +23,7 @@ def _get_debug_mode():
         if os.environ[_DEBUG].lower() == 'true':
             return True
     return False
+
 
 def _get_token():
     # Get the token from the environment or a file.
@@ -50,6 +51,27 @@ def _get_admin_token():
     return admin_token
 
 
+def _terminate_job_in_ee2(jr: JobRunner, params: Dict):
+    finished_job_in_ee2 = False
+    attempts = 5
+
+    while not finished_job_in_ee2:
+        if attempts == 0:
+            break
+        try:
+            jr.ee2.finish_job(params=params)
+            finished_job_in_ee2 = True
+        except Exception:
+            try:
+                jr.ee2.cancel_job(params=params)
+                finished_job_in_ee2 = True
+            except Exception:
+                pass
+        attempts -= 1
+        if not finished_job_in_ee2:
+            time.sleep(30)
+
+
 def terminate_job(jr: JobRunner):
     """
     Unexpected Job Error, so attempt to finish the job, and if that fails, attempt to cancel the job
@@ -60,13 +82,7 @@ def terminate_job(jr: JobRunner):
               'terminated_code': 2
               }
 
-    try:
-        jr.ee2.finish_job(params=params)
-    except Exception:
-        try:
-            jr.ee2.cancel_job(params=params)
-        except Exception:
-            pass
+    _terminate_job_in_ee2(jr=jr, params=params)
 
     # Attempt to clean up Docker and Special Runner Containers
     # Kill Callback Server
@@ -80,7 +96,8 @@ def terminate_job(jr: JobRunner):
     except:
         logging.info(e)
 
-    jr.logger.error(f'An unhandled exception resulted in a premature exit of the app. Job id is {jr.job_id}')
+    jr.logger.error(
+        f'An unhandled exception resulted in a premature exit of the app. Job id is {jr.job_id}')
 
 
 def main():
@@ -113,17 +130,15 @@ def main():
     at = _get_admin_token()
     debug = _get_debug_mode()
 
-
     try:
         logging.info("About to create job runner")
         jr = JobRunner(config, ee2_url, job_id, token, at, debug)
-        logging.info(f'Debug Mode is {debug}')
-        jr.logger.log(line=f'Debug Mode is {debug}')
-        logging.info("About to run job")
+        if debug:
+            jr.logger.log(line=f'Debug mode enabled. Containers will not be deleted after job run.')
         jr.run()
     except Exception as e:
         logging.error("An unhandled error was encountered")
-        logging.error(e)
+        logging.error(e, exc_info=True)
         terminate_job(jr)
         sys.exit(2)
 

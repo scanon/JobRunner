@@ -244,7 +244,7 @@ class MethodRunner:
                 'error': {
                     "code": -32601,
                     "name": "Output not found",
-                    "message": "No output generated",
+                    "message": "No output generated. Check logs for more details",
                     "error": "No output generated"
                 }
             }
