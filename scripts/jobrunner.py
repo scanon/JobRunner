@@ -8,6 +8,7 @@ from typing import Dict
 
 from JobRunner.JobRunner import JobRunner
 
+log_format = "%(created)s %(levelname)s: %(message)s"
 logging.basicConfig(level=logging.INFO, format=log_format)
 _TOKEN_ENV = "KB_AUTH_TOKEN"
 _ADMIN_TOKEN_ENV = "KB_ADMIN_AUTH_TOKEN"
