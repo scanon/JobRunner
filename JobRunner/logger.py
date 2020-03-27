@@ -1,5 +1,6 @@
-import sys
 import os
+import sys
+
 from clients.execution_engine2Client import execution_engine2
 
 
@@ -21,10 +22,10 @@ class Logger(object):
         if self.debug:  # pragma: no cover
             for line in lines:
                 if line['is_error']:
-                    sys.stderr.write(line+'\n')
+                    sys.stderr.write(line + '\n')
                 else:
                     print(line['line'])
-        self.ee2.add_job_logs(self.job_id, lines)
+        self.ee2.add_job_logs({'job_id': self.job_id}, lines)
 
     def log(self, line, ts=None):
         if self.debug:  # pragma: no cover
@@ -33,7 +34,7 @@ class Logger(object):
         if ts:
             line['ts'] = ts
 
-        self.ee2.add_job_logs(self.job_id, [line])
+        self.ee2.add_job_logs({'job_id': self.job_id}, [line])
 
     def error(self, line, ts=None):
         if self.debug:  # pragma: no cover
@@ -41,4 +42,4 @@ class Logger(object):
         line = {'line': line, 'is_error': 1}
         if ts:
             line['ts'] = ts
-        self.ee2.add_job_logs(self.job_id, [line])
+        self.ee2.add_job_logs({'job_id': self.job_id}, [line])

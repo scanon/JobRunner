@@ -278,7 +278,7 @@ class JobRunner(object):
 
         logging.info('About to get job params and config')
         try:
-            job_params = self.ee2.get_job_params(self.job_id)
+            job_params = self.ee2.get_job_params({'job_id' : self.job_id})
 
         except Exception as e:
             self.logger.error("Failed to get job parameters. Exiting.")
