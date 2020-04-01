@@ -30,7 +30,7 @@ class Logger(object):
     def log(self, line, ts=None):
         if self.debug:  # pragma: no cover
             print(line, flush=True)
-        line = {'line': line, 'is_error': 0}
+        line = {'line': line, 'is_error': False}
         if ts:
             line['ts'] = ts
 
@@ -39,7 +39,7 @@ class Logger(object):
     def error(self, line, ts=None):
         if self.debug:  # pragma: no cover
             print(line, flush=True)
-        line = {'line': line, 'is_error': 1}
+        line = {'line': line, 'is_error': True}
         if ts:
             line['ts'] = ts
         self.ee2.add_job_logs({'job_id': self.job_id}, [line])
