@@ -2,6 +2,7 @@
 test_coverage
 .vscode
 .coverage
+Project_Default.xml
 runtester.ready
 test/RunTester
 build/

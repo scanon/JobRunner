@@ -134,10 +134,6 @@ class MethodRunner:
         version = params.get('service_ver')
 
         image = module_info['docker_img_name']
-        id = self.runner.get_image(image)
-
-        if id is None:
-            self.logger.error("No id returned for image")
 
         if subjob:
             fstr = 'Subjob method: {} JobID: {}'
@@ -214,6 +210,7 @@ class MethodRunner:
             'commit': module_info['git_commit_hash']
         }
         # Do we need to do more for error handling?
+
         c = self.runner.run(job_id, image, env, vols, labels, [fin_q])
         logging.info(f"Container id is {c.id}")
         self.logger.log(f"Container id is {c.id}")

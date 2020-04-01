@@ -6,6 +6,7 @@ from time import time as _time
 from typing import List
 
 import docker
+from docker.errors import ImageNotFound
 from docker.models.containers import Container
 
 logging.basicConfig(level=logging.INFO)
@@ -40,7 +41,8 @@ class DockerRunner:
         self.debug = debug
         atexit.register(self._cleanup_docker_containers)
 
-    def _sort_lines_by_time(self, sout, serr):
+    @staticmethod
+    def _sort_lines_by_time(sout, serr):
         """
         This is an internal function to sort and interlace output for NJS.
         This is not fully implemented yet and sould be rethought.
@@ -122,29 +124,24 @@ class DockerRunner:
             for q in queues:
                 q.put(['finished', job_id, None])
 
-    def get_image(self, image):
+
+    def _pull_and_run(self, image, env, labels, vols):
         """
-        Retrieve an image by ID, and pull it if we don't already have it
-        locally on the current worker node.
-        :param image: The image name to pull from from dockerhub
-        :return: ID of the pulled image
-        :param image:
-        :return:
+        Pull an image and then attempt to run it
+        :param image: Image to pull
+        :param env: Env for the docker container
+        :param labels: Labels for the docker container
+        :param vols: Vols for the docker container
+        :return: Container ID
         """
-
-        # Pull the image from the hub if we don't have it
-        pulled = False
-        for im in self.docker.images.list():
-            if image in im.tags:
-                image_id = im.id
-                pulled = True
-                break
-
-        if not pulled:
-            self.logger.log("Pulling image {}".format(image))
-            image_id = self.docker.images.pull(image).id
-
-        return image_id
+        image_id = self.docker.images.pull(image).id
+        if image_id is None:
+            self.logger.error("No id returned for image")
+        return self.docker.containers.run(image, 'async',
+                                          environment=env,
+                                          detach=True,
+                                          labels=labels,
+                                          volumes=vols)
 
     def run(self, job_id, image, env, vols, labels, queues):
         """
@@ -156,22 +153,24 @@ class DockerRunner:
         :param vols: Volumes for the docker container
         :param labels: Labels for the docker container
         :param queues: If there is a fin_q then whether or not to run it async
-        :return:
+        :return: Container ID
         """
 
-        c = self.docker.containers.run(image, 'async',
-                                       environment=env,
-                                       detach=True,
-                                       labels=labels,
-                                       volumes=vols)
+        try:
+            c = self._pull_and_run(image=image, env=env, labels=labels, vols=vols)
+        except ImageNotFound:
+            _sleep(5)
+            c = self._pull_and_run(image=image, env=env, labels=labels, vols=vols)
+
         self.containers.append(c)
         # Start a thread to monitor output and handle finished containers
         t = Thread(target=self._shepherd, args=[c, job_id, queues])
         self.threads.append(t)
         t.start()
         return c
-
-    def remove(self, c):
+    
+    @staticmethod
+    def remove(c):
         """
         Wrapper to kill and remove a docker container.
         :param c: A reference to docker container object
