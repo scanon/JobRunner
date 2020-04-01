@@ -97,7 +97,7 @@ class DockerRunner:
                     dolast = True
         except Exception as e:
             if self.logger is not None:
-                self.logger.error("Unexpected failure")
+                self.logger.error(f"Unexpected failure in docker logging. {e}")
             else:
                 print(f"Exception in docker logging for {c.id}")
                 raise e
