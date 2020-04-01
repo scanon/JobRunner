@@ -62,7 +62,7 @@ class DockerRunner:
                         txt = ''
                     if ts not in lines_by_time:
                         lines_by_time[ts] = []
-                    lines_by_time[ts].append({'line': txt, 'is_error': ierr})
+                    lines_by_time[ts].append({'line': txt, 'is_error': ierr != 0})
             ierr += 1
         nlines = []
         for ts in sorted(lines_by_time.keys()):
