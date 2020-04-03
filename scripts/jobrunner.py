@@ -94,8 +94,8 @@ def terminate_job(jr: JobRunner):
 
     try:
         jr.cbs.kill()
-    except:
-        logging.info(e)
+    except Exception as e2:
+        logging.info(e2)
 
     jr.logger.error(
         f'An unhandled exception resulted in a premature exit of the app. Job id is {jr.job_id}')

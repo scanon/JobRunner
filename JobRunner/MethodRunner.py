@@ -68,10 +68,10 @@ class MethodRunner:
             'external_url': config['external-url'],
             'shock_url': config['shock-url'],
             'handle_url': config['handle-url'],
+            'srv_wiz_url': config['srv-wiz-url'],
             'auth_service_url': config['auth-service-url'],
             'auth_service_url-v2': config['auth-service-url-v2'],
-            'auth_service_url_allow_insecure':
-                config['auth-service-url-allow-insecure'],
+            'auth_service_url_allow_insecure':  config['auth-service-url-allow-insecure'],
             'scratch': config['scratch']
         }
 
@@ -134,10 +134,6 @@ class MethodRunner:
         version = params.get('service_ver')
 
         image = module_info['docker_img_name']
-        id = self.runner.get_image(image)
-
-        if id is None:
-            self.logger.error("No id returned for image")
 
         if subjob:
             fstr = 'Subjob method: {} JobID: {}'
@@ -214,6 +210,7 @@ class MethodRunner:
             'commit': module_info['git_commit_hash']
         }
         # Do we need to do more for error handling?
+
         c = self.runner.run(job_id, image, env, vols, labels, [fin_q])
         logging.info(f"Container id is {c.id}")
         self.logger.log(f"Container id is {c.id}")
