@@ -299,7 +299,7 @@ class JobRunner(object):
             self.ee2.start_job({'job_id': self.job_id})
         except Exception as e:
             self.logger.error("Job already started once. Job restarts are not currently supported")
-            raise eZ
+            raise e
 
         logging.info('Initing work dir')
         self._init_workdir()

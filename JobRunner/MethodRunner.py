@@ -68,10 +68,10 @@ class MethodRunner:
             'external_url': config['external-url'],
             'shock_url': config['shock-url'],
             'handle_url': config['handle-url'],
+            'srv_wiz_url': config['srv_wiz_url'],
             'auth_service_url': config['auth-service-url'],
             'auth_service_url-v2': config['auth-service-url-v2'],
-            'auth_service_url_allow_insecure':
-                config['auth-service-url-allow-insecure'],
+            'auth_service_url_allow_insecure':  config['auth-service-url-allow-insecure'],
             'scratch': config['scratch']
         }
 
