@@ -1,4 +1,5 @@
 import logging
+import sys
 import os
 import requests
 import signal
@@ -8,6 +9,7 @@ from queue import Empty
 from socket import gethostname
 from time import sleep as _sleep
 from time import time as _time
+
 
 from clients.authclient import KBaseAuth
 from clients.execution_engine2Client import execution_engine2 as EE2
@@ -268,9 +270,9 @@ class JobRunner(object):
         # If so, log it
         logging.info('About to check job status')
         if not self._check_job_status():
-            self.logger.error("Job already run or canceled")
-            logging.error("Job already run or canceled")
-            raise OSError("Canceled job")
+            self.logger.error("Job already run or terminated")
+            logging.error("Job already run or terminated")
+            sys.exit(1)
 
         # Get job inputs from ee2 db
         # Config is not stored in job anymore, its a server wide config
