@@ -80,8 +80,9 @@ class JobRunner(object):
         """
         try:
             status = self.ee2.check_job_canceled({"job_id": self.job_id})
-        except Exception:
-            self.logger.error("Warning: Job cancel check failed.  Continuing")
+        except Exception as e:
+            self.logger.error(
+                f"Warning: Job cancel check failed due to {e}. However, the job will continue to run.")
             return True
         if status.get("finished", False):
             return False
@@ -345,10 +346,8 @@ class JobRunner(object):
 
         error = output.get("error")
         if error:
-            error_message = "Attempting to finish the job with an error"
-            self.logger.error(
-                f"ERROR: Attempting to finish the job with an error {error}"
-            )
+            error_message = "Job output contains an error"
+            self.logger.error(f"{error_message} {error}", )
             self.ee2.finish_job(
                 {"job_id": self.job_id, "error_message": error_message, "error": error}
             )

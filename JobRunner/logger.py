@@ -25,7 +25,7 @@ class Logger(object):
                 if line["is_error"]:
                     sys.stderr.write(line + "\n")
                 else:
-                    print(line["line"])
+                    self.jr_logger.info(line["line"])
         self.ee2.add_job_logs({"job_id": self.job_id}, lines)
 
     def log(self, line, ts=None):
@@ -42,8 +42,4 @@ class Logger(object):
         if ts:
             line["ts"] = ts
         self.ee2.add_job_logs({"job_id": self.job_id}, [log_line])
-        try:
-            raise Exception(f"Exception: {line}")
-        except Exception as e:
-            if self.debug:  # pragma: no cover
-                self.jr_logger.error(f"Failure: {line}")
+        self.jr_logger.error(line)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import sentry_sdk
+# import sentry_sdk
 import logging
 import os
 import sys
@@ -7,7 +7,8 @@ import time
 from typing import Dict
 
 from JobRunner.JobRunner import JobRunner
-from sentry_sdk.integrations.sanic import SanicIntegration
+# from sentry_sdk.integrations.sanic import SanicIntegration
+# from sentry_sdk import configure_scope
 
 _TOKEN_ENV = "KB_AUTH_TOKEN"
 _ADMIN_TOKEN_ENV = "KB_ADMIN_AUTH_TOKEN"
@@ -57,18 +58,18 @@ def _get_token():
                 token = f.read().rstrip()
             os.environ[_TOKEN_ENV] = token
         except:
-            print("Failed to get token.")
+            jr_logger.error("Failed to get token.")
             sys.exit(2)
     return token
 
 
 def _get_admin_token():
     if _ADMIN_TOKEN_ENV not in os.environ:
-        print("Missing admin token needed for volume mounts.")
+        jr_logger.error("Missing admin token needed for volume mounts.")
         sys.exit(2)
     admin_token = os.environ.pop("KB_ADMIN_AUTH_TOKEN")
     if _ADMIN_TOKEN_ENV in os.environ:
-        print("Failed to sanitize environment")
+        jr_logger.error("Failed to sanitize environment")
     return admin_token
 
 
@@ -111,12 +112,12 @@ def terminate_job(jr: JobRunner):
     try:
         jr.mr.cleanup_all(debug=_get_debug_mode())
     except Exception as e:
-        logging.info(e)
+        jr_logger.info(e)
 
     try:
         jr.cbs.kill()
     except Exception as e2:
-        logging.info(e2)
+        jr_logger.info(e2)
 
     jr.logger.error(
         f"An unhandled exception resulted in a premature exit of the app. Job id is {jr.job_id}"
@@ -129,16 +130,16 @@ def main():
         job_id = sys.argv[1]
         ee2_url = sys.argv[2]
     else:
-        print("Incorrect usage")
+        jr_logger.error("Incorrect usage")
         sys.exit(1)
 
-    sentry_sdk.init(dsn=os.environ.get("SENTRY_URL"), integrations=[SanicIntegration()])
+    # sentry_sdk.init(dsn=os.environ.get("SENTRY_URL"), integrations=[SanicIntegration()])
 
     config = dict()
     config["workdir"] = os.getcwd()
     if not os.path.exists(config["workdir"]):
         os.makedirs(config["workdir"])
-        logging.info(f"Creating work directory at {config['workdir']}")
+        jr_logger.info(f"Creating work directory at {config['workdir']}")
 
     config["catalog-service-url"] = ee2_url.replace("ee2", "catalog")
     auth_ext = "auth/api/legacy/KBase/Sessions/Login"
@@ -155,6 +156,8 @@ def main():
     at = _get_admin_token()
     debug = _get_debug_mode()
 
+    # with configure_scope() as scope:
+    #     scope.user = {"username": os.environ.get('USER_ID')}
     try:
         jr_logger.info("About to create job runner")
         jr = JobRunner(config, ee2_url, job_id, token, at, debug)
@@ -164,8 +167,7 @@ def main():
             )
         jr.run()
     except Exception as e:
-        jr_logger.error("An unhandled error was encountered")
-        jr_logger.error(e, exc_info=True)
+        jr_logger.error("An unhandled error was encountered {e}", exc_info=True)
         terminate_job(jr)
         sys.exit(2)
 
