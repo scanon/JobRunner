@@ -52,17 +52,17 @@ class DockerRunner:
         for stream in [sout, serr]:
             if len(sout) == 0 and len(serr) == 0:
                 continue
-            for line in stream.decode("utf-8").split('\n'):
+            for line in stream.decode("utf-8").split("\n"):
                 if len(line) > 0:
                     elements = line.split(maxsplit=1)
                     if len(elements) == 2:
                         (ts, txt) = elements
                     else:
                         ts = elements[0]
-                        txt = ''
+                        txt = ""
                     if ts not in lines_by_time:
                         lines_by_time[ts] = []
-                    lines_by_time[ts].append({'line': txt, 'is_error': ierr})
+                    lines_by_time[ts].append({"line": txt, "is_error": ierr})
             ierr += 1
         nlines = []
         for ts in sorted(lines_by_time.keys()):
@@ -70,10 +70,8 @@ class DockerRunner:
         return nlines
 
     def _shepherd_logs(self, c, now, last):
-        sout = c.logs(stdout=True, stderr=False, since=last, until=now,
-                      timestamps=True)
-        serr = c.logs(stdout=False, stderr=True, since=last, until=now,
-                      timestamps=True)
+        sout = c.logs(stdout=True, stderr=False, since=last, until=now, timestamps=True)
+        serr = c.logs(stdout=False, stderr=True, since=last, until=now, timestamps=True)
         lines = self._sort_lines_by_time(sout, serr)
         if self.logger is not None:
             self.logger.log_lines(lines)
@@ -112,7 +110,9 @@ class DockerRunner:
 
             try:
                 if self.debug is True:
-                    msg = f"Not going to delete container {c.id} because debug mode is on"
+                    msg = (
+                        f"Not going to delete container {c.id} because debug mode is on"
+                    )
                     self.logger.log(msg)
                     logging.info(msg)
                 else:
@@ -122,8 +122,7 @@ class DockerRunner:
                 # Maybe something already cleaned it up.  Move on.
                 pass
             for q in queues:
-                q.put(['finished', job_id, None])
-
+                q.put(["finished", job_id, None])
 
     def _pull_and_run(self, image, env, labels, vols):
         """
@@ -137,11 +136,9 @@ class DockerRunner:
         image_id = self.docker.images.pull(image).id
         if image_id is None:
             self.logger.error("No id returned for image")
-        return self.docker.containers.run(image, 'async',
-                                          environment=env,
-                                          detach=True,
-                                          labels=labels,
-                                          volumes=vols)
+        return self.docker.containers.run(
+            image, "async", environment=env, detach=True, labels=labels, volumes=vols
+        )
 
     def run(self, job_id, image, env, vols, labels, queues):
         """
@@ -168,7 +165,7 @@ class DockerRunner:
         self.threads.append(t)
         t.start()
         return c
-    
+
     @staticmethod
     def remove(c):
         """

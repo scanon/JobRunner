@@ -19,12 +19,12 @@ class SpecialRunner:
         self.config = config
         self.top_job_id = job_id
         self.logger = logger
-        self.token = config['token']
-        self.workdir = config.get('workdir', '/mnt/awe/condor')
-        self.shareddir = os.path.join(self.workdir, 'workdir/tmp')
+        self.token = config["token"]
+        self.workdir = config.get("workdir", "/mnt/awe/condor")
+        self.shareddir = os.path.join(self.workdir, "workdir/tmp")
         self.containers = []
         self.threads = []
-        self.allowed_types = ['slurm', 'wdl']
+        self.allowed_types = ["slurm", "wdl"]
 
     _BATCH_POLL = 10
     _FILE_POLL = 10
@@ -36,9 +36,9 @@ class SpecialRunner:
         # check job type against an allow list
         # submit the job and map the batch jobb to the job id
         # start a thread to monitor progress
-        (module, method) = data['method'].split('.')
+        (module, method) = data["method"].split(".")
 
-        if module != 'special':
+        if module != "special":
             err = "Attempting to run the wrong type of module. "
             err += "The module should be 'special'"
             raise ValueError(err)
@@ -46,27 +46,26 @@ class SpecialRunner:
         if method not in self.allowed_types:
             raise ValueError("Invalid special method type")
 
-        if method == 'slurm':
+        if method == "slurm":
             return self._batch_submit(method, config, data, job_id, fin_q)
-        elif method == 'wdl':
+        elif method == "wdl":
             return self._wdl_run(method, config, data, job_id, fin_q)
 
     def _check_batch_job(self, check, slurm_jobid):
         cmd = [check, slurm_jobid]
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = proc.communicate()
-        return stdout.decode('utf-8').rstrip()
+        return stdout.decode("utf-8").rstrip()
 
-    def _watch_batch(self, stype, job_id, slurm_jobid,
-                     outfile, errfile, queues):
+    def _watch_batch(self, stype, job_id, slurm_jobid, outfile, errfile, queues):
         self.logger.log("Watching Slurm Job ID %s" % (slurm_jobid))
-        check = '%s_checkjob' % (stype)
+        check = "%s_checkjob" % (stype)
         cont = True
         retry = 0
         # Wait for job to start out output file to appear
         while cont:
             state = self._check_batch_job(check, slurm_jobid)
-            if state == 'Running':
+            if state == "Running":
                 self.logger.log("Running")
             elif state == "Pending":
                 self.logger.log("Pending")
@@ -118,14 +117,10 @@ class SpecialRunner:
                         self.logger.error(line)
             sleep(self._FILE_POLL)
         # TODO: Extract real exit code
-        resp = {
-            'exit_status': 0,
-            'output_file': outfile,
-            'error_file': errfile
-        }
-        result = {'result': [resp]}
+        resp = {"exit_status": 0, "output_file": outfile, "error_file": errfile}
+        result = {"result": [resp]}
         for q in queues:
-            q.put(['finished_special', job_id, result])
+            q.put(["finished_special", job_id, result])
 
     def _batch_submit(self, stype, config, data, job_id, fin_q):
         """
@@ -136,24 +131,24 @@ class SpecialRunner:
         batch system will return a job id and log output to
         a specified file.
         """
-        params = data['params'][0]
-        submit = '%s_submit' % (stype)
-        if 'submit_script' not in params:
+        params = data["params"][0]
+        submit = "%s_submit" % (stype)
+        if "submit_script" not in params:
             raise ValueError("Missing submit script")
         os.chdir(self.shareddir)
-        scr = params['submit_script']
+        scr = params["submit_script"]
         if not os.path.exists(scr):
             raise OSError("Submit script not found at %s" % (scr))
-        outfile = '%s.out' % (job_id)
-        errfile = '%s.err' % (job_id)
+        outfile = "%s.out" % (job_id)
+        errfile = "%s.err" % (job_id)
         cmd = [submit, scr, outfile, errfile]
         proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = proc.communicate()
-        slurm_jobid = stdout.decode('utf-8').rstrip()
-        out = Thread(target=self._watch_batch, args=[stype, job_id,
-                                                     slurm_jobid,
-                                                     outfile, errfile,
-                                                     fin_q])
+        slurm_jobid = stdout.decode("utf-8").rstrip()
+        out = Thread(
+            target=self._watch_batch,
+            args=[stype, job_id, slurm_jobid, outfile, errfile, fin_q],
+        )
         self.threads.append(out)
         out.start()
         self.containers.append(proc)
@@ -171,23 +166,19 @@ class SpecialRunner:
                 else:
                     error = 0
                 lines = []
-                for line in f.read().decode('utf-8').split("\n"):
-                    lines.append({'line': line, 'is_error': error})
+                for line in f.read().decode("utf-8").split("\n"):
+                    lines.append({"line": line, "is_error": error})
                 if len(lines) > 0:
                     self.logger.log_lines(lines)
             if last:
                 cont = False
             if p.poll() is not None:
                 last = True
-        resp = {
-            'exit_status': p.returncode,
-            'output_file': None,
-            'error_file': None
-        }
-        result = {'result': [resp]}
+        resp = {"exit_status": p.returncode, "output_file": None, "error_file": None}
+        result = {"result": [resp]}
         p.wait()
         for q in queues:
-            q.put(['finished_special', job_id, result])
+            q.put(["finished_special", job_id, result])
 
     def _wdl_run(self, stype, config, data, job_id, queues):
         """
@@ -195,20 +186,20 @@ class SpecialRunner:
         a thread to monitor the progress.
 
         """
-        params = data['params'][0]
-        if 'workflow' not in params:
+        params = data["params"][0]
+        if "workflow" not in params:
             raise ValueError("Missing workflow script")
-        if 'inputs' not in params:
+        if "inputs" not in params:
             raise ValueError("Missing inputs")
         os.chdir(self.shareddir)
-        wdl = params['workflow']
+        wdl = params["workflow"]
         if not os.path.exists(wdl):
             raise OSError("Workflow script not found at %s" % (wdl))
 
-        inputs = params['inputs']
+        inputs = params["inputs"]
         if not os.path.exists(inputs):
             raise OSError("Inputs file not found at %s" % (inputs))
-        cmd = ['wdl_run', inputs, wdl]
+        cmd = ["wdl_run", inputs, wdl]
         proc = Popen(cmd, bufsize=0, stdout=PIPE, stderr=PIPE)
         out = Thread(target=self._readio, args=[proc, job_id, queues])
         self.threads.append(out)

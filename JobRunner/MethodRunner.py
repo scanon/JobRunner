@@ -28,21 +28,21 @@ class MethodRunner:
         self.config = config
         self.job_id = job_id
         self.logger = logger
-        self.token = config['token']
-        self.workdir = config.get('workdir', '/mnt/awe/condor')
+        self.token = config["token"]
+        self.workdir = config.get("workdir", "/mnt/awe/condor")
         # self.basedir = os.path.join(self.workdir, 'job_%s' % (self.job_id))
-        self.refbase = config.get('refdata_dir', '/tmp/ref')
-        self.job_dir = os.path.join(self.workdir, 'workdir')
-        self.hostname = config.get('hostname')
-        self.ee2_endpoint = config.get('ee2_url')
+        self.refbase = config.get("refdata_dir", "/tmp/ref")
+        self.job_dir = os.path.join(self.workdir, "workdir")
+        self.hostname = config.get("hostname")
+        self.ee2_endpoint = config.get("ee2_url")
         self.debug = debug
 
         logging.info(f"Job dir is {self.job_dir}")
-        runtime = config.get('runtime', 'docker')
+        runtime = config.get("runtime", "docker")
         self.containers = []
-        if runtime == 'shifter':
+        if runtime == "shifter":
             self.runner = ShifterRunner(logger=logger)
-        elif runtime == 'docker':
+        elif runtime == "docker":
             self.runner = DockerRunner(logger=logger, debug=self.debug)
         else:
             raise OSError("Unknown runtime")
@@ -56,26 +56,28 @@ class MethodRunner:
 
         if not os.path.exists(self.job_dir):
             os.mkdir(self.job_dir)
-        self.subjobdir = os.path.join(self.workdir, 'subjobs')
+        self.subjobdir = os.path.join(self.workdir, "subjobs")
         if not os.path.exists(self.subjobdir):
             os.mkdir(self.subjobdir)
         # Create config.properties and inputs
         conf_prop = ConfigParser()
 
-        conf_prop['global'] = {
-            'kbase_endpoint': config['kbase-endpoint'],
-            'workspace_url': config['workspace-url'],
-            'external_url': config['external-url'],
-            'shock_url': config['shock-url'],
-            'handle_url': config['handle-url'],
-            'srv_wiz_url': config['srv-wiz-url'],
-            'auth_service_url': config['auth-service-url'],
-            'auth_service_url-v2': config['auth-service-url-v2'],
-            'auth_service_url_allow_insecure':  config['auth-service-url-allow-insecure'],
-            'scratch': config['scratch']
+        conf_prop["global"] = {
+            "kbase_endpoint": config["kbase-endpoint"],
+            "workspace_url": config["workspace-url"],
+            "external_url": config["external-url"],
+            "shock_url": config["shock-url"],
+            "handle_url": config["handle-url"],
+            "srv_wiz_url": config["srv-wiz-url"],
+            "auth_service_url": config["auth-service-url"],
+            "auth_service_url-v2": config["auth-service-url-v2"],
+            "auth_service_url_allow_insecure": config[
+                "auth-service-url-allow-insecure"
+            ],
+            "scratch": config["scratch"],
         }
 
-        with open(job_dir + '/config.properties', 'w') as configfile:
+        with open(job_dir + "/config.properties", "w") as configfile:
             conf_prop.write(configfile)
 
         # Create input.json
@@ -84,30 +86,26 @@ class MethodRunner:
 
         ctx = {
             "call_stack": [
-                {
-                    "method": params['method'],
-                    "time": ts,
-                    "job_id": self.job_id
-                }
+                {"method": params["method"], "time": ts, "job_id": self.job_id}
             ],
-            "service_ver": params.get('service_ver')
+            "service_ver": params.get("service_ver"),
         }
         input = {
             "id": self.job_id,
             "version": "1.1",
-            "method": params['method'],
-            "params": params['params'],
-            "context": ctx
+            "method": params["method"],
+            "params": params["params"],
+            "context": ctx,
         }
-        ijson = job_dir + '/input.json'
-        with open(ijson, 'w') as f:
+        ijson = job_dir + "/input.json"
+        with open(ijson, "w") as f:
             f.write(json.dumps(input))
 
         # Create token file
-        with open(job_dir + '/token', 'w') as f:
+        with open(job_dir + "/token", "w") as f:
             f.write(self.token)
 
-        wdt = os.path.join(job_dir, 'tmp')
+        wdt = os.path.join(job_dir, "tmp")
         if not os.path.exists(wdt):
             os.mkdir(wdt)
 
@@ -119,8 +117,16 @@ class MethodRunner:
         else:
             return self.job_dir
 
-    def run(self, config, module_info, params, job_id, fin_q=None,
-            callback=None, subjob=False):
+    def run(
+        self,
+        config,
+        module_info,
+        params,
+        job_id,
+        fin_q=None,
+        callback=None,
+        subjob=False,
+    ):
         """
         Run the method.  This is used for subjobs too.
         This is a blocking call.  It will not return until the
@@ -130,16 +136,16 @@ class MethodRunner:
         job_dir = self._get_job_dir(job_id, subjob=subjob)
         if not os.path.exists(job_dir):
             os.mkdir(job_dir)
-        (module, method) = params['method'].split('.')
-        version = params.get('service_ver')
+        (module, method) = params["method"].split(".")
+        version = params.get("service_ver")
 
-        image = module_info['docker_img_name']
+        image = module_info["docker_img_name"]
 
         if subjob:
-            fstr = 'Subjob method: {} JobID: {}'
-            self.logger.log(fstr.format(params['method'], job_id))
+            fstr = "Subjob method: {} JobID: {}"
+            self.logger.log(fstr.format(params["method"], job_id))
 
-        run_docker_msg = f'Running docker container for image: {image}'
+        run_docker_msg = f"Running docker container for image: {image}"
         logging.info(run_docker_msg)
         self.logger.log(run_docker_msg)
 
@@ -147,67 +153,62 @@ class MethodRunner:
         self._init_workdir(config, job_dir, params)
 
         # Run the container
-        vols = {
-            job_dir: {'bind': '/kb/module/work', 'mode': 'rw'}
-        }
+        vols = {job_dir: {"bind": "/kb/module/work", "mode": "rw"}}
         if subjob:
             parent_workdir = self._get_job_dir(job_id, subjob=False)
             wdt = os.path.join(parent_workdir, "tmp")
-            vols[wdt] = {'bind': "/kb/module/work/tmp", 'mode': 'rw'}
+            vols[wdt] = {"bind": "/kb/module/work/tmp", "mode": "rw"}
 
-        if 'volume_mounts' in config:
-            for v in config['volume_mounts']:
-                k = v['host_dir']
-                k = k.replace('${username}', config['user'])
+        if "volume_mounts" in config:
+            for v in config["volume_mounts"]:
+                k = v["host_dir"]
+                k = k.replace("${username}", config["user"])
                 if not os.path.exists(k):
                     estr = "Volume mount ({}) doesn't exist.".format(k)
                     self.logger.error(estr)
                     raise OSError("Missing volume mount")
-                vols[k] = {
-                    'bind': v['container_dir']
-                }
-                if v['read_only'] or v['read_only'] == 1:
-                    vols[k]['mode'] = 'ro'
+                vols[k] = {"bind": v["container_dir"]}
+                if v["read_only"] or v["read_only"] == 1:
+                    vols[k]["mode"] = "ro"
         # Check to see if that image exists, and if refdata exists
         # paths to tmp dirs, refdata, volume mounts/binds
-        if 'data_version' in module_info:
-            ref_data = os.path.join(self.refbase, module_info['data_folder'],
-                                    module_info['data_version'])
-            vols[ref_data] = {'bind': '/data', 'mode': 'ro'}
+        if "data_version" in module_info:
+            ref_data = os.path.join(
+                self.refbase, module_info["data_folder"], module_info["data_version"]
+            )
+            vols[ref_data] = {"bind": "/data", "mode": "ro"}
 
-        env = {
-            'SDK_CALLBACK_URL': callback
-        }
+        env = {"SDK_CALLBACK_URL": callback}
 
         # Add secure params
-        if module_info.get('secure_config_params') is not None:
-            for p in module_info['secure_config_params']:
-                k = 'KBASE_SECURE_CONFIG_PARAM_{}'.format(p['param_name'])
-                env[k] = p['param_value']
+        if module_info.get("secure_config_params") is not None:
+            for p in module_info["secure_config_params"]:
+                k = "KBASE_SECURE_CONFIG_PARAM_{}".format(p["param_name"])
+                env[k] = p["param_value"]
 
         # Set up labels used for job administration purposes
 
         labels = {
             "app_id": "{}/{}".format(module, method),
             "app_name": method,
-            "condor_id": os.environ.get('CONDOR_ID'),
+            "condor_id": os.environ.get("CONDOR_ID"),
             "image_name": image,
-            "image_version": image.split('.')[-1],
+            "image_version": image.split(".")[-1],
             "job_id": job_id,
             "method_name": method,
-            "parent_job_id": params.get('parent_job_id'),
-            "user_name": config.get('user'),
-            "wsid": str(params.get('wsid', '')),
-            'ee2_endpoint' : self.ee2_endpoint,
-            'worker_hostname' : self.hostname,
+            "parent_job_id": params.get("parent_job_id"),
+            "user_name": config.get("user"),
+            "wsid": str(params.get("wsid", "")),
+            "ee2_endpoint": self.ee2_endpoint,
+            "worker_hostname": self.hostname,
         }
 
         # If there is a fin_q then run this async
         action = {
-            'name': module,
-            'ver': version,
-            'code_url': module_info['git_url'],
-            'commit': module_info['git_commit_hash']
+            "name": module,
+            "ver": version,
+            "code_url": module_info["git_url"],
+            "commit": module_info["git_commit_hash"],
         }
         # Do we need to do more for error handling?
 
@@ -220,16 +221,15 @@ class MethodRunner:
     def get_output(self, job_id, subjob=True, max_size=1024 * 1024 * 1024):
         # Attempt to read output file and see if it is well formed
         # Throw errors if not
-        of = os.path.join(self._get_job_dir(job_id, subjob=subjob),
-                          'output.json')
+        of = os.path.join(self._get_job_dir(job_id, subjob=subjob), "output.json")
         if os.path.exists(of):
             size = os.stat(of).st_size
             if size > max_size:
                 e = {
                     "code": -32601,
                     "name": "Too much output from a method",
-                    "message": "Method returned too much output " +
-                               "({} > {})".format(size, max_size)
+                    "message": "Method returned too much output "
+                    + "({} > {})".format(size, max_size),
                 }
                 return {"error": e}
 
@@ -238,33 +238,34 @@ class MethodRunner:
         else:
             self.logger.error("No output")
             result = {
-                'error': {
+                "error": {
                     "code": -32601,
                     "name": "Output not found",
                     "message": "No output generated. Check logs for more details",
-                    "error": "No output generated"
+                    "error": "No output generated",
                 }
             }
 
             return result
 
-        if 'error' in output:
-            error = output.get('error')
-            error_msg = error.get('message')
-            error_code = error.get('code')
-            error_name = error.get('name')
-            error_error = error.get('error')
+        if "error" in output:
+            error = output.get("error")
+            error_msg = error.get("message")
+            error_code = error.get("code")
+            error_name = error.get("name")
+            error_error = error.get("error")
             self.logger.error(
-                f"Error in job msg:{error_msg} code:{error_code} name:{error_name} error:{error_error}")
+                f"Error in job msg:{error_msg} code:{error_code} name:{error_name} error:{error_error}"
+            )
 
         return output
 
     def cleanup_all(self, debug=False):
 
         if debug is True:
-            message = 'Debug mode is on, will not delete containers'
+            message = "Debug mode is on, will not delete containers"
             for c in self.containers:
-                message += f' cid={c.id} '
+                message += f" cid={c.id} "
             self.logger.error(line=message)
             return
 
