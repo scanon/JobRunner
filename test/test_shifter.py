@@ -24,27 +24,22 @@ class MockLogger(object):
 
 
 class ShifterRunnerTest(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.logger = MockLogger()
         cls.sr = ShifterRunner(logger=cls.logger)
 
     def test_get_image(self):
-        self.sr.get_image('mock_app:latest')
+        self.sr.get_image("mock_app:latest")
 
     def test_run(self):
-        env = {'FOO': 'BAR'}
-        vols = [{
-         'host_dir': '/tmp',
-         'container_dir': '/tmp',
-         'read_only': 1
-        }]
+        env = {"FOO": "BAR"}
+        vols = [{"host_dir": "/tmp", "container_dir": "/tmp", "read_only": 1}]
         labels = {}
         q = Queue()
-        app = 'mock_app:latest'
+        app = "mock_app:latest"
         self.sr.run(app, app, env, vols, labels, [q])
         result = q.get()
-        self.assertEquals(result[0], 'finished')
+        self.assertEquals(result[0], "finished")
         self.assertEquals(len(result), 3)
-        self.assertIn('line', self.logger.all[0])
+        self.assertIn("line", self.logger.all[0])
