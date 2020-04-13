@@ -39,9 +39,9 @@ class JobRunner(object):
         self.logger = Logger(ee2_url, job_id, ee2=self.ee2)
         self.token = token
         self.client_group = os.environ.get("CLIENTGROUP", "None")
-
         self.admin_token = admin_token
         self.config = self._init_config(config, job_id, ee2_url)
+        self.cgroup = self._get_cgroup()
         self.hostname = gethostname()
         self.auth = KBaseAuth(config.get("auth-service-url"))
         self.job_id = job_id
@@ -68,7 +68,6 @@ class JobRunner(object):
         config["hostname"] = gethostname()
         config["job_id"] = job_id
         config["ee2_url"] = ee2_url
-        config["cgroup"] = self._get_cgroup()
         token = self.token
         config["token"] = token
         config["admin_token"] = self.admin_token
@@ -89,23 +88,28 @@ class JobRunner(object):
         return True
 
     def _init_workdir(self):
-        # Check to see for existence of /mnt/awe/condor
+        """ Check to see for existence of scratch dir: /mnt/awe/condor or /cdr/ """
         if not os.path.exists(self.workdir):
             self.logger.error("Missing workdir")
             raise OSError("Missing Working Directory")
 
     def _get_cgroup(self):
+        """ Examine /proc/PID/cgroup to get the cgroup the runner is using """
         pid = os.getpid()
         cfile = "/proc/{}/cgroup".format(pid)
+        #TODO REMOVE THIS OR FIGURE OUT FOR TESTING WHAT TO DO ABOUT THIS
         if not os.path.exists(cfile):
-            return None
-        with open(cfile) as f:
-            for line in f:
-                if line.find("htcondor") > 0:
-                    items = line.split(":")
-                    if len(items) == 3:
-                        return items[2]
-        return "Unknown"
+            raise Exception(f"Couldn't find cgroup {cfile}")
+        else:
+            with open(cfile) as f:
+                for line in f:
+                    if line.find("htcondor") > 0:
+                        items = line.split(":")
+                        if len(items) == 3:
+                            return items[2].strip()
+
+        raise Exception(f"Couldn't parse out cgroup from {cfile}")
+
 
     def _submit_special(self, config, job_id, job_params):
         """
@@ -141,6 +145,7 @@ class JobRunner(object):
 
         vm = self.cc.get_volume_mounts(module, method, self.client_group)
         config["volume_mounts"] = vm
+
         action = self.mr.run(
             config,
             module_info,
@@ -156,7 +161,7 @@ class JobRunner(object):
         self.mr.cleanup_all(debug=self.debug)
 
     def shutdown(self, sig, bt):
-        print("Recieved an interupt")
+        print("Recieved an interrupt")
         # Send a cancel to the queue
         self.jr_queue.put(["cancel", None, None])
 
@@ -324,6 +329,7 @@ class JobRunner(object):
         self._init_workdir()
         config["workdir"] = self.workdir
         config["user"] = self._validate_token()
+        config["cgroup"] = self.cgroup
 
         logging.info("Setting provenance")
         self.prov = Provenance(job_params)
@@ -335,6 +341,7 @@ class JobRunner(object):
         self.cbs.start()
 
         # Submit the main job
+
         self._submit(
             config=config, job_id=self.job_id, job_params=job_params, subjob=False
         )

@@ -7,6 +7,7 @@ import time
 from typing import Dict
 
 from JobRunner.JobRunner import JobRunner
+
 # from sentry_sdk.integrations.sanic import SanicIntegration
 # from sentry_sdk import configure_scope
 
@@ -158,18 +159,29 @@ def main():
 
     # with configure_scope() as scope:
     #     scope.user = {"username": os.environ.get('USER_ID')}
+    jr = None
     try:
         jr_logger.info("About to create job runner")
         jr = JobRunner(config, ee2_url, job_id, token, at, debug)
+    except Exception as e:
+        jr_logger.error(f"An unhandled error was encountered setting up job runner {e}",
+                        exc_info=True)
+        if jr:
+            terminate_job(jr)
+        sys.exit(3)
+
+    try:
+        jr_logger.info("About to run job with job runner")
         if debug:
             jr.logger.log(
                 line=f"Debug mode enabled. Containers will not be deleted after job run."
             )
         jr.run()
     except Exception as e:
-        jr_logger.error("An unhandled error was encountered {e}", exc_info=True)
+        jr_logger.error(f"An unhandled error was encountered {e}", exc_info=True)
+        jr.logger.error(line=f"{e}")
         terminate_job(jr)
-        sys.exit(2)
+        sys.exit(4)
 
 
 if __name__ == "__main__":

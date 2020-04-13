@@ -124,7 +124,7 @@ class DockerRunner:
             for q in queues:
                 q.put(["finished", job_id, None])
 
-    def _pull_and_run(self, image, env, labels, vols):
+    def _pull_and_run(self, image, env, labels, vols, cgroup_parent=None):
         """
         Pull an image and then attempt to run it
         :param image: Image to pull
@@ -137,10 +137,10 @@ class DockerRunner:
         if image_id is None:
             self.logger.error("No id returned for image")
         return self.docker.containers.run(
-            image, "async", environment=env, detach=True, labels=labels, volumes=vols
+            image, "async", environment=env, detach=True, labels=labels, volumes=vols, cgroup_parent=cgroup_parent
         )
 
-    def run(self, job_id, image, env, vols, labels, queues):
+    def run(self, job_id, image, env, vols, labels, queues, cgroup=None):
         """
         Start a docker container for the main job or subjobs
         and append it to the list of docker containers
@@ -150,14 +150,15 @@ class DockerRunner:
         :param vols: Volumes for the docker container
         :param labels: Labels for the docker container
         :param queues: If there is a fin_q then whether or not to run it async
+        :param cgroup: The optional cgroup to use as a cgroup parent
         :return: Container ID
         """
 
         try:
-            c = self._pull_and_run(image=image, env=env, labels=labels, vols=vols)
+            c = self._pull_and_run(image=image, env=env, labels=labels, vols=vols, cgroup_parent=cgroup)
         except ImageNotFound:
             _sleep(5)
-            c = self._pull_and_run(image=image, env=env, labels=labels, vols=vols)
+            c = self._pull_and_run(image=image, env=env, labels=labels, vols=vols, cgroup_parent=cgroup)
 
         self.containers.append(c)
         # Start a thread to monitor output and handle finished containers
