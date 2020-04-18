@@ -29,6 +29,7 @@ class MethodRunner:
         self.job_id = job_id
         self.logger = logger
         self.token = config["token"]
+        self.cgroup = config.get('cgroup')
         self.workdir = config.get("workdir", "/mnt/awe/condor")
         # self.basedir = os.path.join(self.workdir, 'job_%s' % (self.job_id))
         self.refbase = config.get("refdata_dir", "/tmp/ref")
@@ -133,6 +134,7 @@ class MethodRunner:
         job/process exits.
         """
         # Mkdir workdir/tmp
+        cgroup = config.get('cgroup')
         job_dir = self._get_job_dir(job_id, subjob=subjob)
         if not os.path.exists(job_dir):
             os.mkdir(job_dir)
@@ -212,9 +214,9 @@ class MethodRunner:
         }
         # Do we need to do more for error handling?
 
-        c = self.runner.run(job_id, image, env, vols, labels, [fin_q])
+        c = self.runner.run(job_id, image, env, vols, labels, [fin_q], cgroup=cgroup)
         logging.info(f"Container id is {c.id}")
-        self.logger.log(f"Container id is {c.id}")
+
         self.containers.append(c)
         return action
 
