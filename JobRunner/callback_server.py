@@ -34,7 +34,7 @@ async def _process_rpc(data, token):
         job_id = str(uuid.uuid1())
         data["method"] = "%s.%s" % (module, method[1:-7])
         app.config["out_q"].put(["submit", job_id, data])
-        return {"result": job_id}
+        return {"result": [job_id]}
     # check job
     elif method.startswith("_check_job"):
         if "params" not in data:
