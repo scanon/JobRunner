@@ -341,7 +341,7 @@ class JobRunner(object):
         self.cbs.start()
 
         # Submit the main job
-
+        self.logger.log(f"Job is about to run {config}")
         self._submit(
             config=config, job_id=self.job_id, job_params=job_params, subjob=False
         )

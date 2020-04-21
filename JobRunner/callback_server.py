@@ -29,8 +29,8 @@ async def _process_rpc(data, token):
     (module, method) = data["method"].split(".")
     # async submi job
     if method.startswith("_") and method.endswith("_submit"):
-        if token != app.config.get("token"):
-            abort(401)
+        # if token != app.config.get("token"):
+        #     abort(401)
         job_id = str(uuid.uuid1())
         data["method"] = "%s.%s" % (module, method[1:-7])
         app.config["out_q"].put(["submit", job_id, data])
@@ -51,8 +51,8 @@ async def _process_rpc(data, token):
         _check_finished()
         return {"result": [prov]}
     else:
-        if token != app.config.get("token"):
-            abort(401)
+        # if token != app.config.get("token"):
+        #     abort(401)
         job_id = str(uuid.uuid1())
         data["method"] = "%s.%s" % (module, method[1:-7])
         app.config["out_q"].put(["submit", job_id, data])
@@ -78,6 +78,15 @@ async def root(request):
 
 
 def start_callback_server(ip, port, out_queue, in_queue, token):
+    """
+    Create the callback server for jobs to talk to launch containers
+    :param ip: Free IP on machine
+    :param port: Free Port on Machine
+    :param out_queue: Queue to manage state
+    :param in_queue: Queue to manage state
+    :param token: Token (so other users cannot steal your subjob results or talk to your CBS?)
+    :return:
+    """
     conf = {"token": token, "out_q": out_queue, "in_q": in_queue}
     app.config.update(conf)
     app.run(host=ip, port=port, debug=False, access_log=False)

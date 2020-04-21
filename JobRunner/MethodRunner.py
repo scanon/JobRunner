@@ -143,11 +143,12 @@ class MethodRunner:
 
         image = module_info["docker_img_name"]
 
+
         if subjob:
             fstr = "Subjob method: {} JobID: {}"
             self.logger.log(fstr.format(params["method"], job_id))
 
-        run_docker_msg = f"Running docker container for image: {image}"
+        run_docker_msg = f"Running docker container for image: {image} with {params}"
         logging.info(run_docker_msg)
         self.logger.log(run_docker_msg)
 
@@ -238,7 +239,7 @@ class MethodRunner:
             with open(of) as json_file:
                 output = json.load(json_file)
         else:
-            self.logger.error("No output")
+            self.logger.error(f"No output for {job_id} subjob={subjob} when reading {of}")
             result = {
                 "error": {
                     "code": -32601,
@@ -257,7 +258,7 @@ class MethodRunner:
             error_name = error.get("name")
             error_error = error.get("error")
             self.logger.error(
-                f"Error in job msg:{error_msg} code:{error_code} name:{error_name} error:{error_error}"
+                f"Job {job_id} ran, but {of} contained an error. Error in output job msg:{error_msg} code:{error_code} name:{error_name} error:{error_error}"
             )
 
         return output
