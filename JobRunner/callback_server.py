@@ -25,12 +25,16 @@ def _check_finished():
         pass
 
 
-async def _process_rpc(data, token):
+async def _process_rpc(data, token=None):
+    """
+    Clients will call this method via a POST request in order to run methods
+    :param data: Parameters for RPC Call
+    :param token: Deprecated, no longer needed
+    :return:
+    """
     (module, method) = data["method"].split(".")
-    # async submi job
+    # async submit job
     if method.startswith("_") and method.endswith("_submit"):
-        # if token != app.config.get("token"):
-        #     abort(401)
         job_id = str(uuid.uuid1())
         data["method"] = "%s.%s" % (module, method[1:-7])
         app.config["out_q"].put(["submit", job_id, data])
@@ -51,8 +55,6 @@ async def _process_rpc(data, token):
         _check_finished()
         return {"result": [prov]}
     else:
-        # if token != app.config.get("token"):
-        #     abort(401)
         job_id = str(uuid.uuid1())
         data["method"] = "%s.%s" % (module, method[1:-7])
         app.config["out_q"].put(["submit", job_id, data])
@@ -79,7 +81,7 @@ async def root(request):
 
 def start_callback_server(ip, port, out_queue, in_queue, token):
     """
-    Create the callback server for jobs to talk to launch containers
+    Create the callback server for jobs to talk to queue up the launch of containers
     :param ip: Free IP on machine
     :param port: Free Port on Machine
     :param out_queue: Queue to manage state
