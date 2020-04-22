@@ -1,9 +1,10 @@
-from sanic import Sanic
-from sanic.response import json
-from sanic.exceptions import abort
+import asyncio
 import uuid
 from queue import Empty
-import asyncio
+
+from sanic import Sanic
+from sanic.exceptions import abort
+from sanic.response import json
 
 app = Sanic()
 outputs = dict()
@@ -25,16 +26,21 @@ def _check_finished():
         pass
 
 
-async def _process_rpc(data, token=None):
-    """
-    Clients will call this method via a POST request in order to run methods
-    :param data: Parameters for RPC Call
-    :param token: Deprecated, no longer needed
-    :return:
-    """
+def _check_rpc_token(data, token):
+    if token != app.config.get("token"):
+        if app.config.get("bypass_token"):
+            msg = f"callback running without token {data['method']}"
+            app.config.get("logger").log(msg)
+            print(msg)
+        else:
+            abort(401)
+
+
+async def _process_rpc(data, token):
     (module, method) = data["method"].split(".")
     # async submit job
     if method.startswith("_") and method.endswith("_submit"):
+        _check_rpc_token(data, token)
         job_id = str(uuid.uuid1())
         data["method"] = "%s.%s" % (module, method[1:-7])
         app.config["out_q"].put(["submit", job_id, data])
@@ -55,6 +61,7 @@ async def _process_rpc(data, token=None):
         _check_finished()
         return {"result": [prov]}
     else:
+        _check_rpc_token(data, token)
         job_id = str(uuid.uuid1())
         data["method"] = "%s.%s" % (module, method[1:-7])
         app.config["out_q"].put(["submit", job_id, data])
@@ -79,16 +86,13 @@ async def root(request):
     return json({})
 
 
-def start_callback_server(ip, port, out_queue, in_queue, token):
-    """
-    Create the callback server for jobs to talk to queue up the launch of containers
-    :param ip: Free IP on machine
-    :param port: Free Port on Machine
-    :param out_queue: Queue to manage state
-    :param in_queue: Queue to manage state
-    :param token: Token (so other users cannot steal your subjob results or talk to your CBS?)
-    :return:
-    """
-    conf = {"token": token, "out_q": out_queue, "in_q": in_queue}
+def start_callback_server(ip, port, out_queue, in_queue, token, bypass_token, logger):
+    conf = {
+        "token": token,
+        "out_q": out_queue,
+        "in_q": in_queue,
+        "bypass_token": bypass_token,
+        "logger": logger,
+    }
     app.config.update(conf)
     app.run(host=ip, port=port, debug=False, access_log=False)
