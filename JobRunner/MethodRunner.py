@@ -29,10 +29,10 @@ class MethodRunner:
         self.job_id = job_id
         self.logger = logger
         self.token = config["token"]
-        self.cgroup = config.get('cgroup')
+        self.cgroup = config.get("cgroup")
         self.workdir = config.get("workdir", "/mnt/awe/condor")
         # self.basedir = os.path.join(self.workdir, 'job_%s' % (self.job_id))
-        self.refbase = config.get("refdata_dir", "/tmp/ref")
+
         self.job_dir = os.path.join(self.workdir, "workdir")
         self.hostname = config.get("hostname")
         self.ee2_endpoint = config.get("ee2_url")
@@ -134,7 +134,7 @@ class MethodRunner:
         job/process exits.
         """
         # Mkdir workdir/tmp
-        cgroup = config.get('cgroup')
+        cgroup = config.get("cgroup")
         job_dir = self._get_job_dir(job_id, subjob=subjob)
         if not os.path.exists(job_dir):
             os.mkdir(job_dir)
@@ -174,14 +174,14 @@ class MethodRunner:
                     vols[k]["mode"] = "ro"
         # Check to see if that image exists, and if refdata exists
         # paths to tmp dirs, refdata, volume mounts/binds
+        refbase = config["ref_data_base"]
         if "data_version" in module_info:
             ref_data = os.path.join(
-                self.refbase, module_info["data_folder"], module_info["data_version"]
+                refbase, module_info["data_folder"], module_info["data_version"]
             )
             vols[ref_data] = {"bind": "/data", "mode": "ro"}
 
         env = {"SDK_CALLBACK_URL": callback}
-
         # Add secure params
         if module_info.get("secure_config_params") is not None:
             for p in module_info["secure_config_params"]:
@@ -238,7 +238,9 @@ class MethodRunner:
             with open(of) as json_file:
                 output = json.load(json_file)
         else:
-            self.logger.error("No output")
+            self.logger.error(
+                f"No output for {job_id} subjob={subjob} when reading {of}"
+            )
             result = {
                 "error": {
                     "code": -32601,
@@ -257,7 +259,7 @@ class MethodRunner:
             error_name = error.get("name")
             error_error = error.get("error")
             self.logger.error(
-                f"Error in job msg:{error_msg} code:{error_code} name:{error_name} error:{error_error}"
+                f"Job {job_id} ran, but {of} contained an error. Error in output job msg:{error_msg} code:{error_code} name:{error_name} error:{error_error}"
             )
 
         return output

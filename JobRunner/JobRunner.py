@@ -39,6 +39,7 @@ class JobRunner(object):
         self.logger = Logger(ee2_url, job_id, ee2=self.ee2)
         self.token = token
         self.client_group = os.environ.get("CLIENTGROUP", "None")
+        self.bypass_token = os.environ.get("BYPASS_TOKEN", True)
         self.admin_token = admin_token
         self.config = self._init_config(config, job_id, ee2_url)
         self.cgroup = self._get_cgroup()
@@ -81,7 +82,8 @@ class JobRunner(object):
             status = self.ee2.check_job_canceled({"job_id": self.job_id})
         except Exception as e:
             self.logger.error(
-                f"Warning: Job cancel check failed due to {e}. However, the job will continue to run.")
+                f"Warning: Job cancel check failed due to {e}. However, the job will continue to run."
+            )
             return True
         if status.get("finished", False):
             return False
@@ -97,7 +99,7 @@ class JobRunner(object):
         """ Examine /proc/PID/cgroup to get the cgroup the runner is using """
         pid = os.getpid()
         cfile = "/proc/{}/cgroup".format(pid)
-        #TODO REMOVE THIS OR FIGURE OUT FOR TESTING WHAT TO DO ABOUT THIS
+        # TODO REMOVE THIS OR FIGURE OUT FOR TESTING WHAT TO DO ABOUT THIS
         if not os.path.exists(cfile):
             raise Exception(f"Couldn't find cgroup {cfile}")
         else:
@@ -109,7 +111,6 @@ class JobRunner(object):
                             return items[2].strip()
 
         raise Exception(f"Couldn't parse out cgroup from {cfile}")
-
 
     def _submit_special(self, config, job_id, job_params):
         """
@@ -336,25 +337,31 @@ class JobRunner(object):
 
         # Start the callback server
         logging.info("Starting callback server")
-        cb_args = [self.ip, self.port, self.jr_queue, self.callback_queue, self.token]
+        cb_args = [
+            self.ip,
+            self.port,
+            self.jr_queue,
+            self.callback_queue,
+            self.token,
+            self.bypass_token,
+            self.logger,
+        ]
         self.cbs = Process(target=start_callback_server, args=cb_args)
         self.cbs.start()
 
         # Submit the main job
-
+        self.logger.log(f"Job is about to run {job_params.get('app_id')}")
         self._submit(
             config=config, job_id=self.job_id, job_params=job_params, subjob=False
         )
-
         output = self._watch(config)
-
         self.cbs.kill()
         self.logger.log("Job is done")
 
         error = output.get("error")
         if error:
             error_message = "Job output contains an error"
-            self.logger.error(f"{error_message} {error}", )
+            self.logger.error(f"{error_message} {error}")
             self.ee2.finish_job(
                 {"job_id": self.job_id, "error_message": error_message, "error": error}
             )

@@ -137,7 +137,13 @@ class DockerRunner:
         if image_id is None:
             self.logger.error("No id returned for image")
         return self.docker.containers.run(
-            image, "async", environment=env, detach=True, labels=labels, volumes=vols, cgroup_parent=cgroup_parent
+            image,
+            "async",
+            environment=env,
+            detach=True,
+            labels=labels,
+            volumes=vols,
+            cgroup_parent=cgroup_parent,
         )
 
     def run(self, job_id, image, env, vols, labels, queues, cgroup=None):
@@ -155,10 +161,14 @@ class DockerRunner:
         """
 
         try:
-            c = self._pull_and_run(image=image, env=env, labels=labels, vols=vols, cgroup_parent=cgroup)
+            c = self._pull_and_run(
+                image=image, env=env, labels=labels, vols=vols, cgroup_parent=cgroup
+            )
         except ImageNotFound:
             _sleep(5)
-            c = self._pull_and_run(image=image, env=env, labels=labels, vols=vols, cgroup_parent=cgroup)
+            c = self._pull_and_run(
+                image=image, env=env, labels=labels, vols=vols, cgroup_parent=cgroup
+            )
 
         self.containers.append(c)
         # Start a thread to monitor output and handle finished containers
