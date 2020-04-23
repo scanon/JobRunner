@@ -199,7 +199,7 @@ class MethodRunner:
             "job_id": os.environ.get("JOB_ID"),
             "runner_job_id": job_id,
             "job_dir": job_dir,
-            "subjob": subjob,
+            "subjob": str(subjob),
             "method_name": method,
             "parent_job_id": params.get("PARENT_JOB_ID"),
             "user_name": config.get("user"),
