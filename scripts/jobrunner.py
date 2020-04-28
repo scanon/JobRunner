@@ -164,8 +164,10 @@ def main():
         jr_logger.info("About to create job runner")
         jr = JobRunner(config, ee2_url, job_id, token, at, debug)
     except Exception as e:
-        jr_logger.error(f"An unhandled error was encountered setting up job runner {e}",
-                        exc_info=True)
+        jr_logger.error(
+            f"An unhandled error was encountered setting up job runner {e}",
+            exc_info=True,
+        )
         if jr:
             terminate_job(jr)
         sys.exit(3)

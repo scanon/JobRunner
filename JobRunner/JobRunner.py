@@ -275,9 +275,8 @@ class JobRunner(object):
         will not return until the job finishes or encounters and error.
         This method also handles starting up the callback server.
         """
-        running_msg = "Running job {} on {} ({}) in {}".format(
-            self.job_id, self.hostname, self.ip, self.workdir
-        )
+        running_msg = f"Running job {self.job_id} ({os.environ.get('CONDOR_ID')}) on {self.hostname} ({self.ip}) in {self.workdir}"
+
         self.logger.log(running_msg)
         logging.info(running_msg)
 
