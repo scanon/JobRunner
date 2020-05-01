@@ -51,10 +51,10 @@ async def _process_rpc(data, token):
             abort(404)
         job_id = data["params"][0]
         _check_finished()
-        resp = {"finished": False}
+        resp = {"finished": 0}
         if job_id in outputs:
             resp = outputs[job_id]
-            resp["finished"] = True
+            resp["finished"] = 1
         return {"result": [resp]}
     # Provenance
     elif method.startswith("get_provenance"):
@@ -70,7 +70,7 @@ async def _process_rpc(data, token):
                 _check_finished()
                 if job_id in outputs:
                     resp = outputs[job_id]
-                    resp["finished"] = True
+                    resp["finished"] = 1
                     return resp
                 await asyncio.sleep(1)
         except Exception:
