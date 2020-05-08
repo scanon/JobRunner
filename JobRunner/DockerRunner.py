@@ -133,9 +133,15 @@ class DockerRunner:
         :param vols: Vols for the docker container
         :return: Container ID
         """
-        image_id = self.docker.images.pull(image).id
+        try:
+            image_id = self.docker.images.pull(image).id
+        except docker.errors.requests.HTTPError as e:
+            self.logger.error(f"{e}")
+            image_id = self.docker.images.get(name=image).id
+
         if image_id is None:
             self.logger.error("No id returned for image")
+
         return self.docker.containers.run(
             image,
             "async",
@@ -159,7 +165,7 @@ class DockerRunner:
         :param cgroup: The optional cgroup to use as a cgroup parent
         :return: Container ID
         """
-
+        logging.info(f"About to run {job_id} {image}")
         try:
             c = self._pull_and_run(
                 image=image, env=env, labels=labels, vols=vols, cgroup_parent=cgroup

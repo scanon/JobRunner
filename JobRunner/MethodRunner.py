@@ -206,6 +206,7 @@ class MethodRunner:
             "wsid": str(params.get("wsid", "")),
             "ee2_endpoint": self.ee2_endpoint,
             "worker_hostname": self.hostname,
+            "vols" : f"{vols}"
         }
 
         # If there is a fin_q then run this async
@@ -216,7 +217,8 @@ class MethodRunner:
             "commit": module_info["git_commit_hash"],
         }
         # Do we need to do more for error handling?
-
+        print("About to run runner")
+        print(type(self.runner))
         c = self.runner.run(job_id, image, env, vols, labels, [fin_q], cgroup=cgroup)
         logging.info(f"Container id is {c.id}")
 

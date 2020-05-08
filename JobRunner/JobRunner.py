@@ -19,6 +19,7 @@ from .SpecialRunner import SpecialRunner
 from .callback_server import start_callback_server
 from .logger import Logger
 from .provenance import Provenance
+from .exceptions import CantRestartJob
 
 logging.basicConfig(format="%(created)s %(levelname)s: %(message)s", level=logging.INFO)
 
@@ -42,7 +43,7 @@ class JobRunner(object):
         self.bypass_token = os.environ.get("BYPASS_TOKEN", True)
         self.admin_token = admin_token
         self.config = self._init_config(config, job_id, ee2_url)
-        self.cgroup = self._get_cgroup()
+
         self.hostname = gethostname()
         self.auth = KBaseAuth(config.get("auth-service-url"))
         self.job_id = job_id
@@ -288,9 +289,10 @@ class JobRunner(object):
         # If so, log it
         logging.info("About to check job status")
         if not self._check_job_status():
-            self.logger.error("Job already run or terminated")
-            logging.error("Job already run or terminated")
-            sys.exit(1)
+            error_msg = "Job already run or terminated"
+            self.logger.error(error_msg)
+            logging.error(error_msg)
+            raise CantRestartJob(error_msg)
 
         # Get job inputs from ee2 db
         # Config is not stored in job anymore, its a server wide config
@@ -329,7 +331,7 @@ class JobRunner(object):
         self._init_workdir()
         config["workdir"] = self.workdir
         config["user"] = self._validate_token()
-        config["cgroup"] = self.cgroup
+        config["cgroup"] = self._get_cgroup()
 
         logging.info("Setting provenance")
         self.prov = Provenance(job_params)

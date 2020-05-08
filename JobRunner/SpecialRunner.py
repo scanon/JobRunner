@@ -122,6 +122,9 @@ class SpecialRunner:
         for q in queues:
             q.put(["finished_special", job_id, result])
 
+
+
+
     def _batch_submit(self, stype, config, data, job_id, fin_q):
         """
         This subbmits the job to the batch system and starts

@@ -1,0 +1,2 @@
+class CantRestartJob(Exception):
+    pass

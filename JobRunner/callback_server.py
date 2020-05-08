@@ -3,12 +3,19 @@ import uuid
 from queue import Empty
 
 from sanic import Sanic
-from sanic.exceptions import abort
+from sanic.exceptions import abort, add_status_code
 from sanic.response import json
 
 app = Sanic()
 outputs = dict()
 prov = None
+
+
+@add_status_code(500)
+def _job_failed(output):
+    if 'error' in output:
+       output['result'] = output['error']
+    return output
 
 
 def _check_finished():
@@ -19,6 +26,9 @@ def _check_finished():
         while True:
             [mtype, fjob_id, output] = in_q.get(block=False)
             if mtype == "output":
+                if 'error' in output:
+                    _job_failed(output)
+
                 outputs[fjob_id] = output
             elif mtype == "prov":
                 prov = output

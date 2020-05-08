@@ -33,11 +33,17 @@ class MockRunner(object):
     def __init__(self):
         self.env = None
 
+    def fake_container(self):
+        class FakeContainer:
+            id = 'Fake'
+        return FakeContainer()
+
     def get_image(self, image):
         return "1234"
 
-    def run(self, job_id, image, env, vols, labels, qs):
+    def run(self, job_id, image, env, vols, labels, qs, cgroup):
         self.env = env
+        return self.fake_container()
 
 
 class MethodRunnerTest(unittest.TestCase):
@@ -63,6 +69,8 @@ class MethodRunnerTest(unittest.TestCase):
             "auth-service-url": base,
             "auth-service-url-v2": base,
             "external-url": base,
+            "srv-wiz-url" : base,
+            "ref_data_base":  "/kb/data",
             "auth-service-url-allow-insecure": True,
             "scratch": "/kb/module/work/tmp",
             "user": "mrbogus",
