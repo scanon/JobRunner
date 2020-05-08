@@ -17,7 +17,7 @@ from urllib3.exceptions import ProtocolError
 
 
 from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
+
 
 try:
     from configparser import ConfigParser as _ConfigParser  # py 3
