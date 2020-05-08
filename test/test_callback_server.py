@@ -34,29 +34,29 @@ def test_index_post():
     data = json.dumps({"method": "bogus._test_submit"})
     response = _post(data)
     assert "result" in response.json
-    job_id = response.json["result"]
+    job_id = response.json["result"][0]
     mess = out_q.get()
     assert "submit" in mess
     data = json.dumps({"method": "bogus._check_job", "params": [job_id]})
     response = _post(data)
-    pprint(response.json())
+    pprint(response)
 
     assert "result" in response.json
-    # assert response.json["result"][0]["finished"] is False
-    # data = json.dumps({"method": "bogus.get_provenance", "params": [job_id]})
-    # response = _post(data)
-    # assert "result" in response.json
-    # assert response.json["result"][0] is None
-    # in_q.put(["prov", job_id, "bogus"])
-    # response = _post(data)
-    # assert "result" in response.json
-    # assert response.json["result"][0] == "bogus"
-    # in_q.put(["output", job_id, {"foo": "bar"}])
-    # data = json.dumps({"method": "bogus._check_job", "params": [job_id]})
-    # response = _post(data)
-    # assert "result" in response.json
-    # assert response.json["result"][0]["finished"] is True
-    # assert "foo" in response.json["result"][0]
+    assert response.json["result"][0]["finished"] is 0
+    data = json.dumps({"method": "bogus.get_provenance", "params": [job_id]})
+    response = _post(data)
+    assert "result" in response.json
+    assert response.json["result"][0] is None
+    in_q.put(["prov", job_id, "bogus"])
+    response = _post(data)
+    assert "result" in response.json
+    assert response.json["result"][0] == "bogus"
+    in_q.put(["output", job_id, {"foo": "bar"}])
+    data = json.dumps({"method": "bogus._check_job", "params": [job_id]})
+    response = _post(data)
+    assert "result" in response.json
+    assert response.json["result"][0]["finished"] is 1
+    assert "foo" in response.json["result"][0]
 
 
 @patch("JobRunner.callback_server.uuid", autospec=True)
