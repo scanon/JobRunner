@@ -93,6 +93,7 @@ async def root(request):
     if request.method == "POST" and data is not None and "method" in data:
         token = request.headers.get("Authorization")
         return json(await _process_rpc(data, token))
+        print(data)
     return json({})
 
 
