@@ -5,6 +5,9 @@ from queue import Empty
 from sanic import Sanic
 from sanic.exceptions import abort, add_status_code
 from sanic.response import json
+import logging
+log = logging.getLogger()
+
 
 app = Sanic()
 outputs = dict()
@@ -41,7 +44,7 @@ def _check_rpc_token(data, token):
         if app.config.get("bypass_token"):
             msg = f"callback running without token {data['method']}"
             app.config.get("logger").log(msg)
-            print(msg)
+            logging.info(msg)
         else:
             abort(401)
 
@@ -92,8 +95,9 @@ async def root(request):
     data = request.json
     if request.method == "POST" and data is not None and "method" in data:
         token = request.headers.get("Authorization")
+        logging.info(data)
         return json(await _process_rpc(data, token))
-        print(data)
+
     return json({})
 
 

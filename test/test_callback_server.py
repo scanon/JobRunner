@@ -4,13 +4,13 @@ import json
 from queue import Queue
 from unittest.mock import patch
 from pprint import  pprint
-from sanic.testing import httpx
+
 _TOKEN = "bogus"
 
 
-def _post(data)-> httpx.Response:
+def _post(data):
+    # Returns -> httpx.Response:
     header = {"Authorization": _TOKEN}
-
     sa = {"access_log": False}
     return app.test_client.post("/", server_kwargs=sa, headers=header, data=data)[1]
 
