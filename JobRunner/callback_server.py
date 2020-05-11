@@ -80,7 +80,7 @@ def _check_rpc_token(token):
 
 
 def _handle_provenance():
-    _check_finished()
+    _check_finished(info="Handle Provenance")
     return {"result": [prov]}
 
 
@@ -96,7 +96,7 @@ def _handle_checkjob(data):
     if "params" not in data:
         abort(404)
     job_id = data["params"][0]
-    _check_finished()
+    _check_finished(f"Checkjob for {job_id}")
     resp = {"finished": 0}
     if job_id in outputs:
         resp = outputs[job_id]
@@ -124,7 +124,7 @@ async def _process_rpc(data, token):
         return _handle_provenance()
     else:
         # Sync Job
-        logger.info("Hit the sync method for " + data["method"])
+        logger.info("About to generate job id for the sync method for " + data["method"])
         _check_rpc_token(token)
         job_id = str(uuid.uuid1())
 
@@ -132,13 +132,13 @@ async def _process_rpc(data, token):
         logger.info(data["method"])
         data["method"] = "%s.%s" % (module, method)
 
-        logger.info("Hit the sync 2 for" + data["method"])
+        logger.info(f"Hit the sync 2 {job_id} for" + data["method"])
         app.config["out_q"].put(["submit", job_id, data])
-        logger.info("Hit the sync 3 for" + data["method"])
+        logger.info(f"Hit the sync 3 {job_id} for" + data["method"])
         try:
             while True:
-                logger.info("Hit the sync loop for" + data["method"])
-                _check_finished()
+                logger.info(f"Hit the sync loop for {job_id} for " + data["method"])
+                _check_finished(f'synk check for data["method"] for {job_id}')
                 if job_id in outputs:
                     logger.info("Hit the sync output stage")
                     resp = outputs[job_id]
