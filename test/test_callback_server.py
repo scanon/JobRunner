@@ -71,3 +71,4 @@ def test_index_submit_sync(mock_uuid):
     response = _post(data)
     assert "finished" in response.json
     assert "foo" in response.json
+

@@ -16,7 +16,7 @@ from requests.exceptions import ConnectionError
 from urllib3.exceptions import ProtocolError
 
 
-from requests.adapters import HTTPAdapter
+
 
 
 try:
@@ -35,7 +35,6 @@ _AJ = "application/json"
 _URL_SCHEME = frozenset(["http", "https"])
 _CHECK_JOB_RETRYS = 3
 
-adapter_with_retry = HTTPAdapter(max_retries=25)
 
 
 def _get_token(user_id, password, auth_svc):
@@ -51,7 +50,7 @@ def _get_token(user_id, password, auth_svc):
         + _requests.utils.quote(password)
         + "&fields=token"
     )
-    ret = _requests.post(url=auth_svc, adapter=adapter_with_retry, data=body, allow_redirects=True)
+    ret = _requests.post(url=auth_svc, data=body, allow_redirects=True)
     status = ret.status_code
     if status >= 200 and status <= 299:
         tok = _json.loads(ret.text)
@@ -209,7 +208,6 @@ class BaseClient(object):
         body = _json.dumps(arg_hash, cls=_JSONObjectEncoder)
         ret = _requests.post(
             url,
-            adapter=adapter_with_retry,
             data=body,
             headers=self._headers,
             timeout=self.timeout,

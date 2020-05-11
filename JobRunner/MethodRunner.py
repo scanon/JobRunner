@@ -144,8 +144,7 @@ class MethodRunner:
         image = module_info["docker_img_name"]
 
         if subjob:
-            fstr = "Subjob method: {} JobID: {}"
-            self.logger.log(fstr.format(params["method"], job_id))
+            self.logger.log(f"Subjob method: {params['method']} JobID: {job_id}")
 
         run_docker_msg = f"Running docker container for image: {image}"
         logging.info(run_docker_msg)
@@ -217,8 +216,6 @@ class MethodRunner:
             "commit": module_info["git_commit_hash"],
         }
         # Do we need to do more for error handling?
-        print("About to run runner")
-        print(type(self.runner))
         c = self.runner.run(job_id, image, env, vols, labels, [fin_q], cgroup=cgroup)
         logging.info(f"Container id is {c.id}")
 
