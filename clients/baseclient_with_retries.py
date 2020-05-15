@@ -16,9 +16,6 @@ from requests.exceptions import ConnectionError
 from urllib3.exceptions import ProtocolError
 
 
-
-
-
 try:
     from configparser import ConfigParser as _ConfigParser  # py 3
 except ImportError:
@@ -34,7 +31,6 @@ _CT = "content-type"
 _AJ = "application/json"
 _URL_SCHEME = frozenset(["http", "https"])
 _CHECK_JOB_RETRYS = 3
-
 
 
 def _get_token(user_id, password, auth_svc):

@@ -15,7 +15,7 @@ class Provenance(object):
             "service_ver": params["service_ver"],
             "method": method,
             "method_params": params["params"],
-            "input_ws_objects": params.get('source_ws_objects', []),
+            "input_ws_objects": params.get("source_ws_objects", []),
             "subactions": [],
             "description": desc,
         }

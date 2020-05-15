@@ -345,6 +345,7 @@ class JobRunner(object):
             self.callback_queue,
             self.token,
             self.bypass_token,
+            self.ee2,
         ]
         self.cbs = Process(target=start_callback_server, args=cb_args)
         self.cbs.start()

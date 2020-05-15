@@ -54,8 +54,8 @@ def _set_token():
     return token
 
 
-job_runner_error_fp = "jobrunner.error"
-job_runner_out_fp = "jobrunner.out"
+job_runner_error_fp = "_condor_stderr"
+job_runner_out_fp = "_condor_stdout"
 
 
 def job_contains_unhandled_error():

@@ -144,7 +144,7 @@ class MethodRunner:
         image = module_info["docker_img_name"]
 
         if subjob:
-            self.logger.log(f"Subjob method: {params['method']} JobID: {job_id}")
+            self.logger.log(f"Subjob method: {params['method']} JobID: {job_id} ")
 
         run_docker_msg = f"Running docker container for image: {image}"
         logging.info(run_docker_msg)
@@ -205,7 +205,7 @@ class MethodRunner:
             "wsid": str(params.get("wsid", "")),
             "ee2_endpoint": self.ee2_endpoint,
             "worker_hostname": self.hostname,
-            "vols" : f"{vols}"
+            "vols": f"{vols}",
         }
 
         # If there is a fin_q then run this async
