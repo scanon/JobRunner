@@ -4,6 +4,7 @@ import sys
 from typing import List
 
 from clients.execution_engine2Client import execution_engine2
+from time import sleep as _sleep
 
 
 # TODO: Add a buffer  we may need some flush thread too.
@@ -20,7 +21,8 @@ class Logger(object):
         self.debug = os.environ.get("DEBUG_RUNNER", None)
         self.jr_logger = logging.getLogger("jr")
         self.jr_logger.info(f"Logger initialized for {job_id}")
-        self.retry = False
+        self.logging_retry = True
+        self.logging_retry_attempts = 60
 
     def _add_job_logs(self, lines: List):
         """
@@ -31,8 +33,12 @@ class Logger(object):
         try:
             self.ee2.add_job_logs({"job_id": self.job_id}, lines)
         except Exception:
-            if self.retry:
+            if self.logging_retry:
+                _sleep(1)
+                self.logging_retry_attempts -= 1
                 self.ee2.add_job_logs({"job_id": self.job_id}, lines)
+                if self.logging_retry_attempts == 0:
+                    self.logging_retry = False
 
     def log_lines(self, lines: List):
         """

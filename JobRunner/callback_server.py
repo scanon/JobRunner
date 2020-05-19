@@ -15,20 +15,17 @@ outputs = dict()
 prov = None
 
 
-def start_callback_server(
-    ip, port, out_queue, in_queue, token, bypass_token, ee2_client=None
-):
+def start_callback_server(ip, port, out_queue, in_queue, token, bypass_token):
     conf = {
         "token": token,
         "out_q": out_queue,
         "in_q": in_queue,
         "bypass_token": bypass_token,
-        "ee2_client": ee2_client,
         "RESPONSE_TIMEOUT": 300,
         "REQUEST_TIMEOUT": 300,
     }
     app.config.update(conf)
-    app.run(host=ip, port=port, debug=False, access_log=True)
+    app.run(host=ip, port=port, debug=False, access_log=False)
 
 
 @app.route("/", methods=["GET", "POST"])

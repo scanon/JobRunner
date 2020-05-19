@@ -7,12 +7,26 @@ import signal
 import sys
 import time
 from enum import Enum
+import psutil
+
+
 
 from JobRunner.logger import Logger
 
 logging.basicConfig(level=logging.INFO)
 _TOKEN_ENV = "KB_AUTH_TOKEN"
 _ADMIN_TOKEN_ENV = "KB_ADMIN_AUTH_TOKEN"
+
+import subprocess
+def tailf(filename):
+    #returns last 15 lines from a file, starting from the beginning
+    command = "tail -n 15 " + filename
+    p = subprocess.Popen(command.split(), stdout=subprocess.PIPE, universal_newlines=True)
+    lines = []
+    for line in p.stdout:
+         lines.append(line)
+    return lines
+
 
 
 class TerminatedCode(Enum):
@@ -54,8 +68,8 @@ def _set_token():
     return token
 
 
-job_runner_error_fp = "_condor_stderr"
-job_runner_out_fp = "_condor_stdout"
+job_runner_error_fp = "../_condor_stderr"
+job_runner_out_fp = "../_condor_stdout"
 
 
 def job_contains_unhandled_error():
@@ -83,50 +97,56 @@ def main():
 
             logger = Logger(ee2_url=ee2_url, job_id=job_id)
 
+            # gives a single float value
+            cpu = psutil.cpu_percent()
+            # gives an object with many fields
+            # you can convert that object to a dictionary
+            memory = dict(psutil.virtual_memory()._asdict())
 
-            killed_message = "The monitor jobrunner script killed your job. It's possible the " \
-                             "node got overloaded with too many jobs! Memory={memory} CPU={cpu} "
+            killed_message = "The monitor jobrunner script killed your job. It is possible the " \
+                             f"node got overloaded with too many jobs! Memory={memory} CPU={cpu} "
 
-
-
-            with io.open(job_runner_error_fp, "r", encoding="utf-8") as f:
-                for line in f.readlines():
-                    ts = None
-                    try:
-                        ts = time.strptime(line.split(" ")[0], "%H:%M:%S")
-                    except ValueError:
-                        print("Not a timestamp")
+            last_lines = tailf(job_runner_error_fp)
+            for line in last_lines:
+                ts = None
+                try:
+                    ts = time.strptime(line.split(" ")[0], "%H:%M:%S")
+                except ValueError:
+                    pass
+                try:
                     logger.error(line=line, ts=ts)
+                except Exception:
+                    pass
+
+            try:
+
+                logger.ee2.finish_job(
+                    {
+                        "job_id": job_id,
+                        "error_message": "Unexpected Job Error. Your job was killed by "
+                                         + sys.argv[0],
+                        "error_code": ErrorCode.job_terminated_by_automation.value,
+                    }
+                )
+                logger.error(killed_message)
+            except Exception as fjException:
+                logger.error(line=str(fjException), ts=ts)
 
                 try:
-
-                    logger.ee2.finish_job(
+                    logger.ee2.cancel_job(
                         {
                             "job_id": job_id,
-                            "error_message": "Unexpected Job Error. Your job was killed by "
-                                             + sys.argv[0],
-                            "error_code": ErrorCode.job_terminated_by_automation.value,
+                            "terminated_code": TerminatedCode.terminated_by_automation.value,
                         }
                     )
-                    logger.error(killed_message)
-                except Exception as fjException:
-                    logger.error(line=str(fjException), ts=ts)
-
-                    try:
-                        logger.ee2.cancel_job(
-                            {
-                                "job_id": job_id,
-                                "terminated_code": TerminatedCode.terminated_by_automation.value,
-                            }
-                        )
-                    except Exception as cjException:
-                        logger.error(line=str(cjException), ts=ts)
-                    logger.error(killed_message)
-                try:
-                    os.kill(int(job_runner_pid), signal.SIGKILL)
-                    sys.exit(1337)
-                except Exception as e:
-                    print(e)
+                except Exception as cjException:
+                    logger.error(line=str(cjException), ts=ts)
+                logger.error(killed_message)
+            try:
+                os.kill(int(job_runner_pid), signal.SIGKILL)
+                sys.exit(1337)
+            except Exception as e:
+                print(e)
 
 
 if __name__ == "__main__":

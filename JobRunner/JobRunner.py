@@ -270,6 +270,16 @@ class JobRunner(object):
             self.logger.error("Failed to get token lifetime")
             raise e
 
+    def _retry_finish(self, finish_job_params):
+        """
+        In case of failure to finish, retry once
+        """
+        try:
+            self.ee2.finish_job(finish_job_params)
+        except Exception:
+            _sleep(30)
+            self.ee2.finish_job(finish_job_params)
+
     def run(self):
         """
         This method starts the actual run.  This is a blocking operation and
@@ -345,7 +355,6 @@ class JobRunner(object):
             self.callback_queue,
             self.token,
             self.bypass_token,
-            self.ee2,
         ]
         self.cbs = Process(target=start_callback_server, args=cb_args)
         self.cbs.start()
@@ -363,11 +372,11 @@ class JobRunner(object):
         if error:
             error_message = "Job output contains an error"
             self.logger.error(f"{error_message} {error}")
-            self.ee2.finish_job(
+            self._retry_finish(
                 {"job_id": self.job_id, "error_message": error_message, "error": error}
             )
         else:
-            self.ee2.finish_job({"job_id": self.job_id, "job_output": output})
+            self._retry_finish({"job_id": self.job_id, "job_output": output})
 
         # TODO: Attempt to clean up any running docker containers
         #       (if something crashed, for example)
