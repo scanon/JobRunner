@@ -23,7 +23,7 @@ def test_index_returns_200():
 def test_index_post_empty():
     response = _post(None)
     print(response.json)
-    assert response.json == {}
+    assert response.json == [{}]
 
 
 def test_index_post():
