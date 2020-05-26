@@ -60,7 +60,10 @@ class DockerRunnerTest(unittest.TestCase):
         c = dr.run("1234", "mock_app", {}, vols, {}, [])
         _sleep(2)
         self.assertTrue(os.path.exists(of))
-        self.assertEquals(len(mlog.all), 2)
+
+        self.assertGreaterEqual(len(mlog.all), 2)
+        self.assertLessEqual(len(mlog.all), 4)
+
         dr.remove(c)
 
     def test_sort(self):

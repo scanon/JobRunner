@@ -7,6 +7,7 @@ import time
 from typing import Dict
 
 from JobRunner.JobRunner import JobRunner
+from JobRunner.exceptions import CantRestartJob
 
 # from sentry_sdk.integrations.sanic import SanicIntegration
 # from sentry_sdk import configure_scope
@@ -168,6 +169,7 @@ def main():
             f"An unhandled error was encountered setting up job runner {e}",
             exc_info=True,
         )
+
         if jr:
             terminate_job(jr)
         sys.exit(3)
@@ -179,12 +181,18 @@ def main():
                 line=f"Debug mode enabled. Containers will not be deleted after job run."
             )
         jr.run()
+    except CantRestartJob:
+        # Exit, but don't mark the job as failed
+        sys.exit(1)
     except Exception as e:
-        jr_logger.error(f"An unhandled error was encountered {e}", exc_info=True)
+        jr_logger.error(f"Error: An unhandled error was encountered {e}", exc_info=True)
         jr.logger.error(line=f"{e}")
         terminate_job(jr)
         sys.exit(4)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except Exception as e:
+        sys.exit(e)

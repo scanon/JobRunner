@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 import os
 import unittest
-from unittest.mock import patch
-from mock import MagicMock
+from unittest.mock import patch, MagicMock
+
 
 from JobRunner.CatalogCache import CatalogCache
-from nose.plugins.attrib import attr
+
 from copy import deepcopy
 from .mock_data import (
     CATALOG_GET_MODULE_VERSION,

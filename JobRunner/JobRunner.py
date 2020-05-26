@@ -19,6 +19,7 @@ from .SpecialRunner import SpecialRunner
 from .callback_server import start_callback_server
 from .logger import Logger
 from .provenance import Provenance
+from .exceptions import CantRestartJob
 
 logging.basicConfig(format="%(created)s %(levelname)s: %(message)s", level=logging.INFO)
 
@@ -42,7 +43,7 @@ class JobRunner(object):
         self.bypass_token = os.environ.get("BYPASS_TOKEN", True)
         self.admin_token = admin_token
         self.config = self._init_config(config, job_id, ee2_url)
-        self.cgroup = self._get_cgroup()
+
         self.hostname = gethostname()
         self.auth = KBaseAuth(config.get("auth-service-url"))
         self.job_id = job_id
@@ -269,6 +270,16 @@ class JobRunner(object):
             self.logger.error("Failed to get token lifetime")
             raise e
 
+    def _retry_finish(self, finish_job_params):
+        """
+        In case of failure to finish, retry once
+        """
+        try:
+            self.ee2.finish_job(finish_job_params)
+        except Exception:
+            _sleep(30)
+            self.ee2.finish_job(finish_job_params)
+
     def run(self):
         """
         This method starts the actual run.  This is a blocking operation and
@@ -288,9 +299,10 @@ class JobRunner(object):
         # If so, log it
         logging.info("About to check job status")
         if not self._check_job_status():
-            self.logger.error("Job already run or terminated")
-            logging.error("Job already run or terminated")
-            sys.exit(1)
+            error_msg = "Job already run or terminated"
+            self.logger.error(error_msg)
+            logging.error(error_msg)
+            raise CantRestartJob(error_msg)
 
         # Get job inputs from ee2 db
         # Config is not stored in job anymore, its a server wide config
@@ -329,7 +341,7 @@ class JobRunner(object):
         self._init_workdir()
         config["workdir"] = self.workdir
         config["user"] = self._validate_token()
-        config["cgroup"] = self.cgroup
+        config["cgroup"] = self._get_cgroup()
 
         logging.info("Setting provenance")
         self.prov = Provenance(job_params)
@@ -343,7 +355,6 @@ class JobRunner(object):
             self.callback_queue,
             self.token,
             self.bypass_token,
-            self.logger,
         ]
         self.cbs = Process(target=start_callback_server, args=cb_args)
         self.cbs.start()
@@ -361,11 +372,11 @@ class JobRunner(object):
         if error:
             error_message = "Job output contains an error"
             self.logger.error(f"{error_message} {error}")
-            self.ee2.finish_job(
+            self._retry_finish(
                 {"job_id": self.job_id, "error_message": error_message, "error": error}
             )
         else:
-            self.ee2.finish_job({"job_id": self.job_id, "job_output": output})
+            self._retry_finish({"job_id": self.job_id, "job_output": output})
 
         # TODO: Attempt to clean up any running docker containers
         #       (if something crashed, for example)

@@ -3,13 +3,14 @@ from JobRunner.callback_server import app
 import json
 from queue import Queue
 from unittest.mock import patch
+from pprint import  pprint
 
 _TOKEN = "bogus"
 
 
 def _post(data):
+    # Returns -> httpx.Response:
     header = {"Authorization": _TOKEN}
-
     sa = {"access_log": False}
     return app.test_client.post("/", server_kwargs=sa, headers=header, data=data)[1]
 
@@ -22,7 +23,7 @@ def test_index_returns_200():
 def test_index_post_empty():
     response = _post(None)
     print(response.json)
-    assert response.json == {}
+    assert response.json == [{}]
 
 
 def test_index_post():
@@ -33,13 +34,15 @@ def test_index_post():
     data = json.dumps({"method": "bogus._test_submit"})
     response = _post(data)
     assert "result" in response.json
-    job_id = response.json["result"]
+    job_id = response.json["result"][0]
     mess = out_q.get()
     assert "submit" in mess
     data = json.dumps({"method": "bogus._check_job", "params": [job_id]})
     response = _post(data)
+    pprint(response)
+
     assert "result" in response.json
-    assert response.json["result"][0]["finished"] is False
+    assert response.json["result"][0]["finished"] is 0
     data = json.dumps({"method": "bogus.get_provenance", "params": [job_id]})
     response = _post(data)
     assert "result" in response.json
@@ -52,7 +55,7 @@ def test_index_post():
     data = json.dumps({"method": "bogus._check_job", "params": [job_id]})
     response = _post(data)
     assert "result" in response.json
-    assert response.json["result"][0]["finished"] is True
+    assert response.json["result"][0]["finished"] is 1
     assert "foo" in response.json["result"][0]
 
 
@@ -68,3 +71,4 @@ def test_index_submit_sync(mock_uuid):
     response = _post(data)
     assert "finished" in response.json
     assert "foo" in response.json
+

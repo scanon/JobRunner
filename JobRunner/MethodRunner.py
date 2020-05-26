@@ -144,8 +144,7 @@ class MethodRunner:
         image = module_info["docker_img_name"]
 
         if subjob:
-            fstr = "Subjob method: {} JobID: {}"
-            self.logger.log(fstr.format(params["method"], job_id))
+            self.logger.log(f"Subjob method: {params['method']} JobID: {job_id} ")
 
         run_docker_msg = f"Running docker container for image: {image}"
         logging.info(run_docker_msg)
@@ -206,6 +205,7 @@ class MethodRunner:
             "wsid": str(params.get("wsid", "")),
             "ee2_endpoint": self.ee2_endpoint,
             "worker_hostname": self.hostname,
+            "vols": f"{vols}",
         }
 
         # If there is a fin_q then run this async
@@ -216,7 +216,6 @@ class MethodRunner:
             "commit": module_info["git_commit_hash"],
         }
         # Do we need to do more for error handling?
-
         c = self.runner.run(job_id, image, env, vols, labels, [fin_q], cgroup=cgroup)
         logging.info(f"Container id is {c.id}")
 
