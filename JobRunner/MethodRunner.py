@@ -87,7 +87,7 @@ class MethodRunner:
 
         service_ver = params.get("service_ver")
         if service_ver is None:
-            service_ver = params["context"]["service_ver"]
+            service_ver = params.get("context", {}).get("service_ver")
 
         ctx = {
             "call_stack": [
@@ -146,7 +146,7 @@ class MethodRunner:
         (module, method) = params["method"].split(".")
         service_ver = params.get("service_ver")
         if service_ver is None:
-            service_ver = params["context"]["service_ver"]
+            service_ver = params.get("context", {}).get("service_ver")
 
         image = module_info["docker_img_name"]
 
