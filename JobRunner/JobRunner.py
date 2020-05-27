@@ -131,7 +131,7 @@ class JobRunner(object):
         (module, method) = job_params["method"].split(".")
         service_ver = job_params.get("service_ver")
         if service_ver is None:
-            service_ver = job_params["context"]["service_ver"]
+            service_ver = job_params.get("context", {}).get("service_ver")
         module_info = self.cc.get_module_info(module, service_ver)
 
         git_url = module_info["git_url"]
