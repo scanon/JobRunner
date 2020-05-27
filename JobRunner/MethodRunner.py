@@ -243,16 +243,13 @@ class MethodRunner:
             self.logger.error(
                 f"No output for {job_id} subjob={subjob} when reading {of}"
             )
-            result = {
-                "error": {
-                    "code": -32601,
-                    "name": "Output not found",
-                    "message": "No output generated. Check logs for more details",
-                    "error": "No output generated",
-                }
+            error = {
+                "code": -32601,
+                "name": "Output not found",
+                "message": "No output generated. Check logs for more details",
+                "error": "No output generated",
             }
-
-            return result
+            return {"error": error, "result": error}
 
         if "error" in output:
             error = output.get("error")

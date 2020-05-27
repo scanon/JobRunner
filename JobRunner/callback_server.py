@@ -87,6 +87,8 @@ def _handle_checkjob(data):
     if job_id in outputs:
         resp = outputs[job_id]
         resp["finished"] = 1
+        # resp["result"] = outputs[job_id]
+
     return {"result": [resp]}
 
 

@@ -2,7 +2,6 @@ import logging
 import os
 import signal
 import socket
-import sys
 from multiprocessing import Process, Queue
 from queue import Empty
 from socket import gethostname
@@ -10,16 +9,16 @@ from time import sleep as _sleep
 from time import time as _time
 
 import requests
-
 from clients.authclient import KBaseAuth
 from clients.execution_engine2Client import execution_engine2 as EE2
+
 from .CatalogCache import CatalogCache
 from .MethodRunner import MethodRunner
 from .SpecialRunner import SpecialRunner
 from .callback_server import start_callback_server
+from .exceptions import CantRestartJob
 from .logger import Logger
 from .provenance import Provenance
-from .exceptions import CantRestartJob
 
 logging.basicConfig(format="%(created)s %(levelname)s: %(message)s", level=logging.INFO)
 

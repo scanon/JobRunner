@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 
-import io
 import logging
 import os
 import signal
 import sys
 import time
 from enum import Enum
+
 import psutil
-
-
-
 from JobRunner.logger import Logger
 
 logging.basicConfig(level=logging.INFO)
@@ -18,15 +15,16 @@ _TOKEN_ENV = "KB_AUTH_TOKEN"
 _ADMIN_TOKEN_ENV = "KB_ADMIN_AUTH_TOKEN"
 
 import subprocess
+
+
 def tailf(filename):
-    #returns last 15 lines from a file, starting from the beginning
+    # returns last 15 lines from a file, starting from the beginning
     command = "tail -n 15 " + filename
     p = subprocess.Popen(command.split(), stdout=subprocess.PIPE, universal_newlines=True)
     lines = []
     for line in p.stdout:
-         lines.append(line)
+        lines.append(line)
     return lines
-
 
 
 class TerminatedCode(Enum):
