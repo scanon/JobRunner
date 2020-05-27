@@ -85,13 +85,18 @@ class MethodRunner:
         nowutc = datetime.utcnow().replace(tzinfo=timezone.utc)
         ts = nowutc.replace(microsecond=0).isoformat()
 
+        service_ver = params.get("service_ver")
+        if service_ver is None:
+            service_ver = params["context"]["service_ver"]
+
         ctx = {
             "call_stack": [
                 {"method": params["method"], "time": ts, "job_id": self.job_id}
             ],
-            "service_ver": params.get("service_ver"),
+            "service_ver": service_ver
         }
-        input = {
+
+        job_input_json = {
             "id": self.job_id,
             "version": "1.1",
             "method": params["method"],
@@ -100,7 +105,7 @@ class MethodRunner:
         }
         ijson = job_dir + "/input.json"
         with open(ijson, "w") as f:
-            f.write(json.dumps(input))
+            f.write(json.dumps(job_input_json))
 
         # Create token file
         with open(job_dir + "/token", "w") as f:
@@ -119,14 +124,14 @@ class MethodRunner:
             return self.job_dir
 
     def run(
-        self,
-        config,
-        module_info,
-        params,
-        job_id,
-        fin_q=None,
-        callback=None,
-        subjob=False,
+            self,
+            config,
+            module_info,
+            params,
+            job_id,
+            fin_q=None,
+            callback=None,
+            subjob=False,
     ):
         """
         Run the method.  This is used for subjobs too.
@@ -139,7 +144,9 @@ class MethodRunner:
         if not os.path.exists(job_dir):
             os.mkdir(job_dir)
         (module, method) = params["method"].split(".")
-        version = params.get("service_ver")
+        service_ver = params.get("service_ver")
+        if service_ver is None:
+            service_ver = params["context"]["service_ver"]
 
         image = module_info["docker_img_name"]
 
@@ -211,7 +218,7 @@ class MethodRunner:
         # If there is a fin_q then run this async
         action = {
             "name": module,
-            "ver": version,
+            "ver": service_ver,
             "code_url": module_info["git_url"],
             "commit": module_info["git_commit_hash"],
         }
@@ -233,7 +240,7 @@ class MethodRunner:
                     "code": -32601,
                     "name": "Too much output from a method",
                     "message": "Method returned too much output "
-                    + "({} > {})".format(size, max_size),
+                               + "({} > {})".format(size, max_size),
                 }
                 return {"error": e}
 
