@@ -119,14 +119,14 @@ class MethodRunner:
             return self.job_dir
 
     def run(
-        self,
-        config,
-        module_info,
-        params,
-        job_id,
-        fin_q=None,
-        callback=None,
-        subjob=False,
+            self,
+            config,
+            module_info,
+            params,
+            job_id,
+            fin_q=None,
+            callback=None,
+            subjob=False,
     ):
         """
         Run the method.  This is used for subjobs too.
@@ -233,7 +233,7 @@ class MethodRunner:
                     "code": -32601,
                     "name": "Too much output from a method",
                     "message": "Method returned too much output "
-                    + "({} > {})".format(size, max_size),
+                               + "({} > {})".format(size, max_size),
                 }
                 return {"error": e}
 
@@ -243,16 +243,16 @@ class MethodRunner:
             self.logger.error(
                 f"No output for {job_id} subjob={subjob} when reading {of}"
             )
-            result = {
-                "error": {
-                    "code": -32601,
-                    "name": "Output not found",
-                    "message": "No output generated. Check logs for more details",
-                    "error": "No output generated",
-                }
+            error = {
+                "code": -32601,
+                "name": "Output not found",
+                "message": "No output generated. Check logs for more details",
+                "error": "No output generated",
             }
-
-            return result
+            return {
+                "error": error,
+                "result": error
+            }
 
         if "error" in output:
             error = output.get("error")
