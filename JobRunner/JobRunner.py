@@ -129,8 +129,10 @@ class JobRunner(object):
 
     def _submit(self, config, job_id, job_params, subjob=True):
         (module, method) = job_params["method"].split(".")
-        version = job_params.get("service_ver")
-        module_info = self.cc.get_module_info(module, version)
+        service_ver = job_params.get("service_ver")
+        if service_ver is None:
+            service_ver = job_params["context"]["service_ver"]
+        module_info = self.cc.get_module_info(module, service_ver)
 
         git_url = module_info["git_url"]
         git_commit = module_info["git_commit_hash"]
