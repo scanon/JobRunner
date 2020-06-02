@@ -271,10 +271,14 @@ class JobRunner(object):
             self.logger.error("Failed to get token lifetime")
             raise e
 
-    def _retry_finish(self, finish_job_params):
+    def _retry_finish(self, finish_job_params, success):
         """
         In case of failure to finish, retry once
         """
+        if success:
+            if 'output' not in finish_job_params or finish_job_params['output'] is None:
+                finish_job_params['output'] = {}
+
         try:
             self.ee2.finish_job(finish_job_params)
         except Exception:
@@ -374,10 +378,11 @@ class JobRunner(object):
             error_message = "Job output contains an error"
             self.logger.error(f"{error_message} {error}")
             self._retry_finish(
-                {"job_id": self.job_id, "error_message": error_message, "error": error}
+                {"job_id": self.job_id, "error_message": error_message, "error": error},
+                success=False
             )
         else:
-            self._retry_finish({"job_id": self.job_id, "job_output": output})
+            self._retry_finish({"job_id": self.job_id, "job_output": output}, success=True)
 
         # TODO: Attempt to clean up any running docker containers
         #       (if something crashed, for example)
