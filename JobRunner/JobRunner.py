@@ -276,8 +276,8 @@ class JobRunner(object):
         In case of failure to finish, retry once
         """
         if success:
-            if 'output' not in finish_job_params or finish_job_params['output'] is None:
-                finish_job_params['output'] = {}
+            if 'job_output' not in finish_job_params or finish_job_params['job_output'] is None:
+                finish_job_params['job_output'] = {}
 
         try:
             self.ee2.finish_job(finish_job_params)
