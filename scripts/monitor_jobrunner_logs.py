@@ -117,11 +117,20 @@ def main():
                 except Exception:
                     pass
 
+            error_msg = f"Unexpected Job Error. Your job was killed by {sys.argv[0]} "
+
+            error = {
+                "code": ErrorCode.job_terminated_by_automation.value,
+                "name": "Output not found",
+                "message": error_msg,
+                "error": error_msg,
+            }
+
             kill_job_params = {
                 "job_id": job_id,
-                "error_message": "Unexpected Job Error. Your job was killed by "
-                                 + sys.argv[0],
+                "error_message": error_msg,
                 "error_code": ErrorCode.job_terminated_by_automation.value,
+                "error": error
             }
 
             attempt_kill(logger=logger, killed_message=killed_message,
@@ -144,7 +153,6 @@ def attempt_kill(logger, killed_message, kill_job_params, ts):
         time.sleep(10)
         logger.error(line=str(fjException), ts=ts)
         logger.error(killed_message)
-
 
 
 if __name__ == "__main__":
