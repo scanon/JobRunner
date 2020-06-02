@@ -16,13 +16,17 @@ prov = None
 
 
 def start_callback_server(ip, port, out_queue, in_queue, token, bypass_token):
+    timeout = 3600
+    max_size_gb = 1000000000
     conf = {
         "token": token,
         "out_q": out_queue,
         "in_q": in_queue,
         "bypass_token": bypass_token,
-        "RESPONSE_TIMEOUT": 300,
-        "REQUEST_TIMEOUT": 300,
+        "RESPONSE_TIMEOUT": timeout,
+        "REQUEST_TIMEOUT": timeout,
+        "KEEP_ALIVE_TIMEOUT": timeout,
+        "REQUEST_MAX_SIZE" : max_size_gb
     }
     app.config.update(conf)
     app.run(host=ip, port=port, debug=False, access_log=False)
