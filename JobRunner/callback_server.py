@@ -17,7 +17,7 @@ prov = None
 
 def start_callback_server(ip, port, out_queue, in_queue, token, bypass_token):
     timeout = 3600
-    max_size_bytes = 5000000000
+    max_size_bytes = 100000000000
     conf = {
         "token": token,
         "out_q": out_queue,
