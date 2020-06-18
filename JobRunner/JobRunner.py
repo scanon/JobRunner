@@ -377,7 +377,8 @@ class JobRunner(object):
             config=config, job_id=self.job_id, job_params=job_params, subjob=False
         )
         output = self._watch(config)
-        self.cbs.kill()
+        self.cbs.close()
+        self.cbs.terminate()
         self.logger.log("Job is done")
 
         error = output.get("error")
