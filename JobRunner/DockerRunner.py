@@ -133,11 +133,13 @@ class DockerRunner:
         :param vols: Vols for the docker container
         :return: Container ID
         """
+
         try:
-            image_id = self.docker.images.pull(image).id
-        except docker.errors.requests.HTTPError as e:
-            self.logger.error(f"{e}")
+            # See if the image exists
             image_id = self.docker.images.get(name=image).id
+        except docker.errors.ImageNotFound:
+            # Pulling image
+            image_id = self.docker.images.pull(image).id
 
         if image_id is None:
             self.logger.error("No id returned for image")
