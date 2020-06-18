@@ -142,6 +142,7 @@ class DockerRunner:
             self.logger.error(e)
 
         try:
+            # If no tag is specified, will return a list
             image_id = self.docker.images.pull(image).id
         except docker.errors.ImageNotFound as e:
             self.logger.error(e)
