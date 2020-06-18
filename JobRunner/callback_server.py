@@ -39,6 +39,10 @@ async def root(request):
         if request.method == "POST" and data is not None and "method" in data:
             token = request.headers.get("Authorization")
             response = await _process_rpc(data, token)
+
+            if "result" in response and "error" in response["result"]:
+                return json(response, status=500)
+
             return json(response)
     except Exception as e:
         raise e

@@ -268,7 +268,7 @@ class MethodRunner:
                 f"Job {job_id} ran, but {of} contained an error. Error in output job msg:{error_msg} code:{error_code} name:{error_name} error:{error_error}"
             )
             if output.get("result") is None:
-                output.result = output.get("error")
+                output['result'] = output.get("error")
 
         return output
 
