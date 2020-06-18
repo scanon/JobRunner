@@ -132,6 +132,8 @@ class JobRunner(object):
         service_ver = job_params.get("service_ver")
         if service_ver is None:
             service_ver = job_params.get("context", {}).get("service_ver")
+
+        # TODO Fail gracefully if this step fails. For example, setting service_ver='fake'
         module_info = self.cc.get_module_info(module, service_ver)
 
         git_url = module_info["git_url"]
@@ -276,8 +278,11 @@ class JobRunner(object):
         In case of failure to finish, retry once
         """
         if success:
-            if 'job_output' not in finish_job_params or finish_job_params['job_output'] is None:
-                finish_job_params['job_output'] = {}
+            if (
+                "job_output" not in finish_job_params
+                or finish_job_params["job_output"] is None
+            ):
+                finish_job_params["job_output"] = {}
 
         try:
             self.ee2.finish_job(finish_job_params)
@@ -366,6 +371,8 @@ class JobRunner(object):
 
         # Submit the main job
         self.logger.log(f"Job is about to run {job_params.get('app_id')}")
+
+        # TODO Try except for when submit or watch failure happens and correct finishjob call
         self._submit(
             config=config, job_id=self.job_id, job_params=job_params, subjob=False
         )
@@ -379,10 +386,12 @@ class JobRunner(object):
             self.logger.error(f"{error_message} {error}")
             self._retry_finish(
                 {"job_id": self.job_id, "error_message": error_message, "error": error},
-                success=False
+                success=False,
             )
         else:
-            self._retry_finish({"job_id": self.job_id, "job_output": output}, success=True)
+            self._retry_finish(
+                {"job_id": self.job_id, "job_output": output}, success=True
+            )
 
         # TODO: Attempt to clean up any running docker containers
         #       (if something crashed, for example)

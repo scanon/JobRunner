@@ -26,7 +26,7 @@ def start_callback_server(ip, port, out_queue, in_queue, token, bypass_token):
         "RESPONSE_TIMEOUT": timeout,
         "REQUEST_TIMEOUT": timeout,
         "KEEP_ALIVE_TIMEOUT": timeout,
-        "REQUEST_MAX_SIZE" : max_size_bytes
+        "REQUEST_MAX_SIZE": max_size_bytes,
     }
     app.config.update(conf)
     app.run(host=ip, port=port, debug=False, access_log=False)
@@ -34,18 +34,12 @@ def start_callback_server(ip, port, out_queue, in_queue, token, bypass_token):
 
 @app.route("/", methods=["GET", "POST"])
 async def root(request):
-    try:
-        data = request.json
-        if request.method == "POST" and data is not None and "method" in data:
-            token = request.headers.get("Authorization")
-            response = await _process_rpc(data, token)
-
-            if "result" in response and "error" in response["result"]:
-                return json(response, status=500)
-
-            return json(response)
-    except Exception as e:
-        raise e
+    data = request.json
+    if request.method == "POST" and data is not None and "method" in data:
+        token = request.headers.get("Authorization")
+        response = await _process_rpc(data, token)
+        status = 500 if "error" in response else 200
+        return json(response, status=status)
     return json([{}])
 
 
@@ -92,10 +86,15 @@ def _handle_checkjob(data):
     job_id = data["params"][0]
     _check_finished(f"Checkjob for {job_id}")
     resp = {"finished": 0}
+
     if job_id in outputs:
         resp = outputs[job_id]
         resp["finished"] = 1
-        # resp["result"] = outputs[job_id]
+        try:
+            if "error" in resp:
+                return {"result": [resp], "error": resp["error"]}
+        except Exception as e:
+            logger.info(e)
 
     return {"result": [resp]}
 
