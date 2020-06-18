@@ -94,7 +94,7 @@ def _handle_checkjob(data):
             if "error" in resp:
                 return {"result": [resp], "error": resp["error"]}
         except Exception as e:
-            logger.info(e)
+            logger.debug(e)
 
     return {"result": [resp]}
 
