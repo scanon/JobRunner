@@ -132,6 +132,8 @@ class JobRunner(object):
         service_ver = job_params.get("service_ver")
         if service_ver is None:
             service_ver = job_params.get("context", {}).get("service_ver")
+
+        # TODO Fail gracefully if this step fails. For example, setting service_ver='fake'
         module_info = self.cc.get_module_info(module, service_ver)
 
         git_url = module_info["git_url"]
@@ -271,10 +273,17 @@ class JobRunner(object):
             self.logger.error("Failed to get token lifetime")
             raise e
 
-    def _retry_finish(self, finish_job_params):
+    def _retry_finish(self, finish_job_params, success):
         """
         In case of failure to finish, retry once
         """
+        if success:
+            if (
+                "job_output" not in finish_job_params
+                or finish_job_params["job_output"] is None
+            ):
+                finish_job_params["job_output"] = {}
+
         try:
             self.ee2.finish_job(finish_job_params)
         except Exception:
@@ -362,6 +371,8 @@ class JobRunner(object):
 
         # Submit the main job
         self.logger.log(f"Job is about to run {job_params.get('app_id')}")
+
+        # TODO Try except for when submit or watch failure happens and correct finishjob call
         self._submit(
             config=config, job_id=self.job_id, job_params=job_params, subjob=False
         )
@@ -374,10 +385,13 @@ class JobRunner(object):
             error_message = "Job output contains an error"
             self.logger.error(f"{error_message} {error}")
             self._retry_finish(
-                {"job_id": self.job_id, "error_message": error_message, "error": error}
+                {"job_id": self.job_id, "error_message": error_message, "error": error},
+                success=False,
             )
         else:
-            self._retry_finish({"job_id": self.job_id, "job_output": output})
+            self._retry_finish(
+                {"job_id": self.job_id, "job_output": output}, success=True
+            )
 
         # TODO: Attempt to clean up any running docker containers
         #       (if something crashed, for example)

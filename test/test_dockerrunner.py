@@ -57,7 +57,7 @@ class DockerRunnerTest(unittest.TestCase):
         of = "/tmp/output.json"
         if os.path.exists(of):
             os.remove(of)
-        c = dr.run("1234", "mock_app", {}, vols, {}, [])
+        c = dr.run("1234", "mock_app:latest", {}, vols, {}, [])
         _sleep(2)
         self.assertTrue(os.path.exists(of))
 

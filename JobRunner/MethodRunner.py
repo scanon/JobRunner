@@ -93,7 +93,7 @@ class MethodRunner:
             "call_stack": [
                 {"method": params["method"], "time": ts, "job_id": self.job_id}
             ],
-            "service_ver": service_ver
+            "service_ver": service_ver,
         }
 
         job_input_json = {
@@ -124,14 +124,14 @@ class MethodRunner:
             return self.job_dir
 
     def run(
-            self,
-            config,
-            module_info,
-            params,
-            job_id,
-            fin_q=None,
-            callback=None,
-            subjob=False,
+        self,
+        config,
+        module_info,
+        params,
+        job_id,
+        fin_q=None,
+        callback=None,
+        subjob=False,
     ):
         """
         Run the method.  This is used for subjobs too.
@@ -240,7 +240,7 @@ class MethodRunner:
                     "code": -32601,
                     "name": "Too much output from a method",
                     "message": "Method returned too much output "
-                               + "({} > {})".format(size, max_size),
+                    + "({} > {})".format(size, max_size),
                 }
                 return {"error": e}
 
@@ -267,6 +267,8 @@ class MethodRunner:
             self.logger.error(
                 f"Job {job_id} ran, but {of} contained an error. Error in output job msg:{error_msg} code:{error_code} name:{error_name} error:{error_error}"
             )
+            if output.get("result") is None:
+                output["result"] = output.get("error")
 
         return output
 

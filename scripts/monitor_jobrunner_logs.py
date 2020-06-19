@@ -8,6 +8,7 @@ import time
 from enum import Enum
 
 import psutil
+
 from JobRunner.logger import Logger
 
 logging.basicConfig(level=logging.INFO)
@@ -105,8 +106,8 @@ def main():
                              f"node got overloaded with too many jobs! Memory={memory} CPU={cpu} "
 
             last_lines = tailf(job_runner_error_fp)
+            ts = None
             for line in last_lines:
-                ts = None
                 try:
                     ts = time.strptime(line.split(" ")[0], "%H:%M:%S")
                 except ValueError:
@@ -116,35 +117,42 @@ def main():
                 except Exception:
                     pass
 
-            try:
+            error_msg = f"Unexpected Job Error. Your job was killed by {sys.argv[0]} "
 
-                logger.ee2.finish_job(
-                    {
-                        "job_id": job_id,
-                        "error_message": "Unexpected Job Error. Your job was killed by "
-                                         + sys.argv[0],
-                        "error_code": ErrorCode.job_terminated_by_automation.value,
-                    }
-                )
-                logger.error(killed_message)
-            except Exception as fjException:
-                logger.error(line=str(fjException), ts=ts)
+            error = {
+                "code": ErrorCode.job_terminated_by_automation.value,
+                "name": "Output not found",
+                "message": error_msg,
+                "error": error_msg,
+            }
 
-                try:
-                    logger.ee2.cancel_job(
-                        {
-                            "job_id": job_id,
-                            "terminated_code": TerminatedCode.terminated_by_automation.value,
-                        }
-                    )
-                except Exception as cjException:
-                    logger.error(line=str(cjException), ts=ts)
-                logger.error(killed_message)
+            kill_job_params = {
+                "job_id": job_id,
+                "error_message": error_msg,
+                "error_code": ErrorCode.job_terminated_by_automation.value,
+                "error": error
+            }
+
+            attempt_kill(logger=logger, killed_message=killed_message,
+                         kill_job_params=kill_job_params, ts=ts)
+            attempt_kill(logger=logger, killed_message=killed_message,
+                         kill_job_params=kill_job_params, ts=ts)
+
             try:
                 os.kill(int(job_runner_pid), signal.SIGKILL)
                 sys.exit(1337)
             except Exception as e:
                 print(e)
+
+
+def attempt_kill(logger, killed_message, kill_job_params, ts):
+    try:
+        logger.error(killed_message)
+        logger.ee2.finish_job(kill_job_params)
+    except Exception as fjException:
+        time.sleep(10)
+        logger.error(line=str(fjException), ts=ts)
+        logger.error(killed_message)
 
 
 if __name__ == "__main__":
