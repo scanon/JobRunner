@@ -7,6 +7,7 @@ from typing import List
 
 import docker
 from docker.errors import ImageNotFound
+from requests.exceptions import ReadTimeout
 from docker.models.containers import Container
 
 logging.basicConfig(level=logging.INFO)
@@ -33,7 +34,8 @@ class DockerRunner:
         """
         Inputs: config dictionary, Job ID, and optional logger
         """
-        self.docker = docker.from_env(timeout=300)
+        self.timeout = 300
+        self.docker = docker.from_env(timeout=self.timeout)
         self.logger = logger
         self.containers = []  # type: List[Container]
         self.threads = []  # type: List[Thread]
@@ -184,6 +186,9 @@ class DockerRunner:
             c = self._pull_and_run(
                 image=image, env=env, labels=labels, vols=vols, cgroup_parent=cgroup
             )
+        except ReadTimeout:
+            self.logger.log(f"Docker daemon did not respond within {self.timeout} sec")
+            raise
 
         self.containers.append(c)
         # Start a thread to monitor output and handle finished containers
