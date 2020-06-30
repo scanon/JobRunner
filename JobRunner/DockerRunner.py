@@ -136,19 +136,20 @@ class DockerRunner:
         image_id = None
 
         try:
-            # See if the image exists
-            image_id = self.docker.images.get(name=image).id
-        except docker.errors.ImageNotFound as e:
-            self.logger.error(e)
-
-        try:
             # If no tag is specified, will return a list
             image_id = self.docker.images.pull(image).id
         except docker.errors.ImageNotFound as e:
-            self.logger.error(e)
+            self.logger.error(f"{e}")
+
+        try:
+            # See if the image exists
+            image_id = self.docker.images.get(name=image).id
+        except docker.errors.ImageNotFound as e:
+            self.logger.error(f"{e}")
 
         if image_id is None:
-            raise docker.errors.ImageNotFound(f"Couldn't find image for {image}")
+            raise Exception(f"Couldn't find image for {image}")
+
 
         return self.docker.containers.run(
             image,
