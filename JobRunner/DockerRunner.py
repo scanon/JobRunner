@@ -7,8 +7,8 @@ from typing import List
 
 import docker
 from docker.errors import ImageNotFound
-from requests.exceptions import ReadTimeout
 from docker.models.containers import Container
+from requests.exceptions import ReadTimeout
 
 logging.basicConfig(level=logging.INFO)
 
@@ -152,7 +152,6 @@ class DockerRunner:
         if image_id is None:
             raise Exception(f"Couldn't find image for {image}")
 
-
         return self.docker.containers.run(
             image,
             "async",
@@ -187,7 +186,8 @@ class DockerRunner:
                 image=image, env=env, labels=labels, vols=vols, cgroup_parent=cgroup
             )
         except ReadTimeout:
-            self.logger.log(f"Docker daemon did not respond within {self.timeout} sec")
+            self.logger.error(
+                f"Docker daemon did not pull and run {image} within {self.timeout} sec")
             raise
 
         self.containers.append(c)
