@@ -33,7 +33,7 @@ class DockerRunner:
         """
         Inputs: config dictionary, Job ID, and optional logger
         """
-        self.docker = docker.from_env()
+        self.docker = docker.from_env(timeout=300)
         self.logger = logger
         self.containers = []  # type: List[Container]
         self.threads = []  # type: List[Thread]
