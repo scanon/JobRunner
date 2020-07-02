@@ -34,7 +34,7 @@ class ShifterRunnerTest(unittest.TestCase):
 
     def test_run(self):
         env = {"FOO": "BAR"}
-        vols = [{"host_dir": "/tmp", "container_dir": "/tmp", "read_only": 1}]
+        vols = {"/tmp": {"bind": "/kb/module/work", "mode": "rw"}}
         labels = {}
         q = Queue()
         app = "mock_app:latest"

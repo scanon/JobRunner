@@ -41,6 +41,7 @@ class MethodRunner:
         logging.info(f"Job dir is {self.job_dir}")
         runtime = config.get("runtime", "docker")
         self.containers = []
+        self.runtime = runtime
         if runtime == "shifter":
             self.runner = ShifterRunner(logger=logger)
         elif runtime == "docker":
@@ -224,7 +225,8 @@ class MethodRunner:
         }
         # Do we need to do more for error handling?
         c = self.runner.run(job_id, image, env, vols, labels, [fin_q], cgroup=cgroup)
-        logging.info(f"Container id is {c.id}")
+        if self.runtime == "docker":
+            logging.info(f"Container id is {c.id}")
 
         self.containers.append(c)
         return action

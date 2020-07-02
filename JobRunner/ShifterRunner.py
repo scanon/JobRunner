@@ -29,35 +29,47 @@ class ShifterRunner:
                     error = 1
                 else:
                     error = 0
-                line = f.readline().decode("utf-8")
-                if len(line) > 0:
-                    self.logger.log_lines([{"line": line, "is_error": error}])
+                l = f.readline().decode('utf-8')
+                if len(l) > 0:
+                    try:
+                        self.logger.log_lines([{'line': l, 'is_error': error}])
+                    except Exception as e:
+                        print(e)
+                        continue
             if last:
                 cont = False
             if p.poll() is not None:
                 last = True
+        p.wait()
         for q in queues:
-            q.put(["finished", job_id, None])
+            q.put(['finished', job_id, None])
 
     def get_image(self, image):
         # Do a shifterimg images
-        lookcmd = ["shifterimg", "lookup", image]
+        lookcmd = ['myshifter', 'lookup', image]
         proc = Popen(lookcmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = proc.communicate()
-        id = stdout.decode("utf-8").rsplit()
-        if id == "":
-            cmd = ["shifterimg", "pull", image]
+        id = stdout.decode('utf-8').rsplit()
+        if id == [] or id is None:
+            cmd = ['myshifter', 'pull', image]
             proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
             stdout, stderr = proc.communicate()
-            proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
+            proc = Popen(lookcmd, stdout=PIPE, stderr=PIPE)
             stdout, stderr = proc.communicate()
-            id = stdout.decode("utf-8").rsplit()
+            id = stdout.decode('utf-8').rsplit()
 
-        return id
+        return id[0]
 
-    def run(self, job_id, image, env, vols, labels, queues):
-        cmd = ["shifter", "--image=%s" % (image)]
-        # Should we do somehting with the labels?
+    def run(self, job_id, image, env, vols, labels, queues, cgroup=None):
+        self.get_image(image)
+        cmd = [
+            'myshifter',
+            'run',
+            '--image=%s' % (image)
+            ]
+        # TODO: Do somehting with the labels
+        for hd in vols.keys():
+           cmd.extend(['--volume', '%s:%s' % (hd, vols[hd]['bind'])])
         newenv = os.environ
         for e in env.keys():
             newenv[e] = env[e]

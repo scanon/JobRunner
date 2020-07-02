@@ -97,6 +97,8 @@ class JobRunner(object):
 
     def _get_cgroup(self):
         """ Examine /proc/PID/cgroup to get the cgroup the runner is using """
+        if os.environ.get("NO_CGROUP",0) == 1:
+            return None
         pid = os.getpid()
         cfile = "/proc/{}/cgroup".format(pid)
         # TODO REMOVE THIS OR FIGURE OUT FOR TESTING WHAT TO DO ABOUT THIS
