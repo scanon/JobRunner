@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [[ "$1" == "lookup" ]] ; then
+  echo "12312312321"
+elif [ "$1"=="pull" ] ; then
+  echo "pulling"
+elif [ "$1"=="run" ] ; then
+  echo "line 1"
+  sleep 1
+  echo "an error" 1>&2
+  sleep 1
+  echo "line 3"
+  exit 1
+else
+   echo "Don't know this"
+fi
