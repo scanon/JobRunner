@@ -50,7 +50,6 @@ class ShifterRunner:
         proc = Popen(lookcmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = proc.communicate()
         id = stdout.decode('utf-8').rsplit()
-        print("id: " + str(id))
         if id == [] or id is None:
             cmd = ['myshifter', 'pull', image]
             proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
