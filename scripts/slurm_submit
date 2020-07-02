@@ -4,6 +4,11 @@
 # Args are submit script, outputfile, and error file
 # Return the job id via stdout
 
+# Clean up environment
+module purge
+PATH=/usr/common/software/bin:/usr/common/mss/bin:/usr/common/nsg/bin:/opt/ovis/bin:/opt/ovis/sbin:/usr/local/bin:/usr/bin:/bin:/usr/lib/mit/bin:/usr/lib/mit/sbin
+
+
 SUBMIT=$1
 LOGFILE=$2
 ERRFILE=$3

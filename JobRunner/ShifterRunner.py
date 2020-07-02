@@ -26,27 +26,32 @@ class ShifterRunner:
             x = select(rlist, [], [], 1)[0]
             for f in x:
                 if f == p.stderr:
-                    error = True
+                    error = 1
                 else:
-                    error = False
-                line = f.readline().decode('utf-8')
-                if len(line) > 0:
-                    self.logger.log_lines([{'line': line, 'error': error}])
+                    error = 0
+                l = f.readline().decode('utf-8')
+                if len(l) > 0:
+                    try:
+                        self.logger.log_lines([{'line': l, 'is_error': error}])
+                    except Exception as e:
+                        print(e)
+                        continue
             if last:
                 cont = False
             if p.poll() is not None:
                 last = True
+        p.wait()
         for q in queues:
             q.put(['finished', job_id, None])
 
     def get_image(self, image):
         # Do a shifterimg images
-        lookcmd = ['shifterimg', 'lookup', image]
+        lookcmd = ['myshifter', 'lookup', image]
         proc = Popen(lookcmd, stdout=PIPE, stderr=PIPE)
         stdout, stderr = proc.communicate()
         id = stdout.decode('utf-8').rsplit()
         if id == '':
-            cmd = ['shifterimg', 'pull', image]
+            cmd = ['myshifter', 'pull', image]
             proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
             stdout, stderr = proc.communicate()
             proc = Popen(cmd, stdout=PIPE, stderr=PIPE)
@@ -55,12 +60,15 @@ class ShifterRunner:
 
         return id
 
-    def run(self, job_id, image, env, vols, labels, queues):
+    def run(self, job_id, image, env, vols, labels, queues, cgroup=None):
         cmd = [
-            'shifter',
+            'myshifter',
+            'run',
             '--image=%s' % (image)
             ]
-        # Should we do somehting with the labels?
+        # TODO: Do somehting with the labels
+        for hd in vols.keys():
+           cmd.extend(['--volume', '%s:%s' % (hd, vols[hd]['bind'])])
         newenv = os.environ
         for e in env.keys():
             newenv[e] = env[e]
