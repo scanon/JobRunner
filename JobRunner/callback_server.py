@@ -12,7 +12,7 @@ Config.SANIC_REQUEST_TIMEOUT = 300
 
 app = Sanic()
 outputs = dict()
-prov = None
+prov = []
 
 
 def start_callback_server(ip, port, out_queue, in_queue, token, bypass_token):
