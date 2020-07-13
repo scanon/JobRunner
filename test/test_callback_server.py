@@ -46,7 +46,7 @@ def test_index_post():
     data = json.dumps({"method": "bogus.get_provenance", "params": [job_id]})
     response = _post(data)
     assert "result" in response.json
-    assert response.json["result"][0] is None
+    assert response.json["result"][0] in [None,[]]
     in_q.put(["prov", job_id, "bogus"])
     response = _post(data)
     assert "result" in response.json
