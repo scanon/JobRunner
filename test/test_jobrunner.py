@@ -376,6 +376,7 @@ class JobRunnerTest(unittest.TestCase):
             self.config, self.ee2_url, self.jobid, self.token, self.admin_token
         )
         jr._get_cgroup = MagicMock(return_value=None)
+        jr.cc.catalog.list_volume_mounts = MagicMock(return_value=[])
         params = deepcopy(EE2_JOB_PARAMS)
         submitscript = os.path.join(self.workdir, "workdir/tmp", "submit.sl")
         with open(submitscript, "w") as f:

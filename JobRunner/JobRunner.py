@@ -50,6 +50,8 @@ class JobRunner(object):
         self.jr_queue = Queue()
         self.callback_queue = Queue()
         self.prov = None
+        self.module = None
+        self.method = None
         self._init_callback_url()
         self.debug = debug
         self.mr = MethodRunner(
@@ -120,12 +122,16 @@ class JobRunner(object):
         """
         (module, method) = job_params["method"].split(".")
         self.logger.log("Submit %s as a %s:%s job" % (job_id, module, method))
+        # get the volumes using the parent module and method and
+        # the special method call (e.g. wdl, hpc)
+        vm = self.cc.get_volume_mounts(self.module, self.method, method)
 
         self.sr.run(
             config,
             job_params,
             job_id,
             callback=self.callback_url,
+            volumes=vm,
             fin_q=[self.jr_queue],
         )
 
@@ -334,6 +340,7 @@ class JobRunner(object):
             self.logger.error("Failed to config . Exiting.")
             raise e
 
+        (self.module, self.method) = job_params["method"].split(".")
         config["job_id"] = self.job_id
         self.logger.log(
             f"Server version of Execution Engine: {config.get('ee.server.version')}"

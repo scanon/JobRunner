@@ -2,8 +2,10 @@
 import os
 import unittest
 
+from .mock_data import CATALOG_LIST_VOLUME_MOUNTS
 from JobRunner.SpecialRunner import SpecialRunner
 from queue import Queue
+import json
 
 
 class MockLogger(object):
@@ -40,10 +42,11 @@ class SpecialRunnerTest(unittest.TestCase):
     task hello_world {
         String name = "World"
         command {
+            echo $VOL_MOUNT_0
             echo 'Hello, ${name}'
         }
         output {
-            File out = stdout()
+            Array[String] out = read_lines(stdout())
         }
         #runtime {
         #    docker: 'ubuntu:latest'
@@ -90,6 +93,12 @@ class SpecialRunnerTest(unittest.TestCase):
             "params": [{"workflow": "workflow.wdl", "inputs": "inputs.json"}],
         }
         job_id = "1234"
+        vm = [{
+            'host_dir': '/tmp/data',
+            'container_dir': '/data',
+            'read_only': 1
+            }]
+
         if not os.path.exists("/tmp/workdir/tmp"):
             os.makedirs("/tmp/workdir/tmp/")
         with open("/tmp/workdir/tmp/workflow.wdl", "w") as f:
@@ -99,7 +108,7 @@ class SpecialRunnerTest(unittest.TestCase):
         q = Queue()
         self.sr._FILE_POLL = 0.1
         self.sr._BATCH_POLL = 0.3
-        self.sr.run(config, data, job_id, fin_q=[q])
+        self.sr.run(config, data, job_id, volumes=vm, fin_q=[q])
         result = q.get(timeout=60)
         self.assertEquals(result[0], "finished_special")
         self.assertEquals(len(result), 3)
@@ -110,3 +119,7 @@ class SpecialRunnerTest(unittest.TestCase):
                 count += 1
         self.assertTrue(count)
         self.assertLess(self.logger.ct, 10)
+        with open('/tmp/workdir/tmp/meta.json') as f:
+            data = json.loads(f.read())['outputs']['hello.hello_world.out']
+        self.assertEquals(data[0], '/tmp/data:/data:ro')
+        self.assertEquals(data[1], 'Hello, World')

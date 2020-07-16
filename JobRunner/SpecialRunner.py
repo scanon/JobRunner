@@ -25,12 +25,13 @@ class SpecialRunner:
         self.containers = []
         self.threads = []
         self.allowed_types = ["slurm", "wdl"]
+        self.WDL_RUN = 'wdl_run'
 
     _BATCH_POLL = 10
     _FILE_POLL = 10
     _MAX_RETRY = 5
 
-    def run(self, config, data, job_id, callback=None, fin_q=[]):
+    def run(self, config, data, job_id, callback=None, volumes=None, fin_q=[]):
         # TODO:
         # initialize working space
         # check job type against an allow list
@@ -49,7 +50,7 @@ class SpecialRunner:
         if method == "slurm":
             return self._batch_submit(method, config, data, job_id, fin_q)
         elif method == "wdl":
-            return self._wdl_run(method, config, data, job_id, fin_q)
+            return self._wdl_run(method, config, data, job_id, volumes, fin_q)
 
     def _check_batch_job(self, check, slurm_jobid):
         cmd = [check, slurm_jobid]
@@ -180,13 +181,22 @@ class SpecialRunner:
         for q in queues:
             q.put(["finished_special", job_id, result])
 
-    def _wdl_run(self, stype, config, data, job_id, queues):
+    def _wdl_run(self, stype, config, data, job_id, volumes, queues):
         """
         This subbmits the job to the batch system and starts
         a thread to monitor the progress.
 
         """
         params = data["params"][0]
+        if volumes:
+            index = 0
+            for vol in volumes:
+                index = 0
+                key = 'VOL_MOUNT_{}'.format(index)
+                if vol['read_only']:
+                    vol['flag'] = ':ro'
+                value = '{host_dir}:{container_dir}{flag}'.format(**vol)
+                os.environ[key] = value
         if "workflow" not in params:
             raise ValueError("Missing workflow script")
         if "inputs" not in params:
@@ -199,7 +209,7 @@ class SpecialRunner:
         inputs = params["inputs"]
         if not os.path.exists(inputs):
             raise OSError("Inputs file not found at %s" % (inputs))
-        cmd = ["wdl_run", inputs, wdl]
+        cmd = [self.WDL_RUN, inputs, wdl]
         proc = Popen(cmd, bufsize=0, stdout=PIPE, stderr=PIPE)
         out = Thread(target=self._readio, args=[proc, job_id, queues])
         self.threads.append(out)
